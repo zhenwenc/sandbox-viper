@@ -29,4 +29,21 @@ yarn install
 PORT=3000 yarn start:dev
 #+END_SRC
 
-Then open [[http://localhost:3000/oauth][http://localhost:3000/viper]] in your browser.
+Send a GET request to the server to generate a EU COVID Certificate Wallet Pass:
+#+BEGIN_SRC ts
+import got from 'got';
+import open from 'open';
+import { URL, URLSearchParams } from 'url';
+import { createWriteStream } from 'fs';
+
+(async () => {
+  const qs = new URLSearchParams({
+    templateId: "dcc",
+    barcode: "HC1:..."
+  });
+  const stream = got(`http://localhost:3000/viper/pass/ios?${qs}`, { isStream: true });
+  const fileName = "/tmp/viper-pass.pkpass";
+  stream.pipe(createWriteStream(fileName));
+  stream.on('end', () => open(fileName)) // Opens the downloaded file in Pass Viewer
+})();
+#+END_SRC

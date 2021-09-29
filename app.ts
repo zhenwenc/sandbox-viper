@@ -1,4 +1,5 @@
 import next from 'next';
+import dotenv from 'dotenv';
 import morgan from 'morgan';
 import express from 'express';
 import errorhandler from 'errorhandler';
@@ -6,6 +7,10 @@ import { compose, trim } from 'ramda';
 
 import { Logger } from '@navch/common';
 import { setRequestContext } from '@navch/express';
+
+import * as iosPassHandlers from './server/pass/ios.handler';
+
+dotenv.config({ path: '.env.local' });
 
 (async function bootstrap() {
   const port = process.env.PORT || '3000';
@@ -28,10 +33,16 @@ import { setRequestContext } from '@navch/express';
     res.status(200).send('Ok');
   });
 
-  const contextMiddleware = setRequestContext({ logger });
+  const iosPassHandlerCtx = await iosPassHandlers.createHandlerContext(logger);
+  const contextMiddleware = setRequestContext(async () => ({
+    logger,
+    ...iosPassHandlerCtx,
+  }));
   app.use(contextMiddleware);
 
   // -----------------------------------------------------------------------
+
+  app.use('/viper', iosPassHandlers.buildRouter({}));
 
   // -----------------------------------------------------------------------
 
