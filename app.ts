@@ -1,5 +1,5 @@
+import fs from 'fs';
 import next from 'next';
-import dotenv from 'dotenv';
 import morgan from 'morgan';
 import express from 'express';
 import errorhandler from 'errorhandler';
@@ -10,7 +10,15 @@ import { setRequestContext } from '@navch/express';
 
 import * as iosPassHandlers from './server/pass/ios.handler';
 
-dotenv.config({ path: '.env.local' });
+// Load environment variables from .env* files. It will not modify any
+// environment variables that have already been set.
+// https://github.com/motdotla/dotenv
+const dotenvFiles = ['.env.local', '.env'];
+dotenvFiles.forEach(dotenvFile => {
+  if (fs.existsSync(dotenvFile)) {
+    require('dotenv').config({ path: dotenvFile });
+  }
+});
 
 (async function bootstrap() {
   const port = process.env.PORT || '3000';

@@ -1,14 +1,13 @@
-#+TITLE:     OIDC Sandbox
+#+TITLE:     Viper Sandbox
 #+AUTHOR:    Frederick Z. Cai
-#+EMAIL:     frederick.cai@gmail.com
-#+DESCRIPTION: OpdenID Connect Sandbox
+#+DESCRIPTION: Verifiable Presentation Sandbox
 #+LANGUAGE: en
 #+STARTUP:  indent
 #+OPTIONS:  H:4 num:nil toc:2 p:t
 
 #+HTML: <div align="center">
 #+HTML:   <div>
-#+HTML:     An Express app that provides utilities.
+#+HTML:     An Express app that provides utilities for ...
 #+HTML:   </div>
 #+HTML:   </br>
 #+HTML:   <a href="https://opensource.org/licenses/Apache-2.0">
@@ -19,7 +18,25 @@
 
 * Installation
 
-Launch the application locally by running the following command:
+** Create a file called =.env.local= in the project's root directory
+
+#+BEGIN_SRC conf
+PASS_IOS_WWDR={{ Apple WWDR CA Certificate PEM }}
+
+# Follow the Apple Developer Guide to generate a Signing Certificate
+# https://developer.apple.com/documentation/walletpasses/building_a_pass
+
+PASS_IOS_TEAM_ID={{ Apple Team Identifier }}
+PASS_IOS_PASS_TYPE_ID={{ Pass Type Identifier }}
+
+# Double quote multi-line strings and use the \n for newlines
+# https://github.com/bkeepers/dotenv#multi-line-values
+PASS_IOS_SIGNER_CERT={{ Signer Certificate PEM }}
+PASS_IOS_SIGNER_KEY={{ Signer Key PEM }}
+PASS_IOS_SIGNER_KEY_PASS={{ Signer Key Passphrase }}
+#+END_SRC
+
+** Launch the application locally by running the following command
 
 #+BEGIN_SRC sh :evel no
 # At the project root
@@ -29,7 +46,7 @@ yarn install
 PORT=3000 yarn start:dev
 #+END_SRC
 
-Send a GET request to the server to generate a EU COVID Certificate Wallet Pass:
+** Send a GET request to the server to generate a Sample Wallet Pass
 #+BEGIN_SRC ts
 import got from 'got';
 import open from 'open';
