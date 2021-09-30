@@ -71,7 +71,7 @@ export const buildRouter = makeRouter(() => {
         // Refresh the local Wallet Pass templates if needed
         if (forceReload || Date.now() > passTemplateCacheExpiry) {
           const templates = await buildPassTemplates(logger);
-          await Promise.all(templates.map(passTemplateCache.setItem));
+          await Promise.all(templates.map(item => passTemplateCache.setItem(item)));
           passTemplateCacheExpiry = Date.now() + 3600 * 1000;
         }
 

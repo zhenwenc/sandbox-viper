@@ -47,7 +47,7 @@ PORT=3000 yarn start:dev
 #+END_SRC
 
 ** Send a GET request to the server to generate a Sample Wallet Pass
-#+BEGIN_SRC ts
+#+BEGIN_SRC ts :results none
 import got from 'got';
 import open from 'open';
 import { URL, URLSearchParams } from 'url';
