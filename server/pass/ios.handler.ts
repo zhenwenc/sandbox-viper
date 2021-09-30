@@ -2,6 +2,7 @@ import * as t from 'io-ts';
 import path from 'path';
 import mustache from 'mustache';
 import { get } from 'lodash';
+import { v4 as uuid } from 'uuid';
 import { oneLineTrim as markdown } from 'common-tags';
 import { createPass, createAbstractModel, AbstractModel } from 'passkit-generator';
 
@@ -62,10 +63,11 @@ export const createHandlerContext = async (logger: Logger): Promise<HandlerConte
       const message = markdown`
         Missing the required "serialNumber" key in "pass.json" file for {{ template }}.
         We use this value to uniquely identifies each template within the application.
+        A random UUID will be generated for this template.
       `;
-      throw new Error(mustache.render(message, { template: passJson.description }));
+      logger.warn(mustache.render(message, { template: passJson.description }));
     }
-    const templateId = passJson.serialNumber;
+    const templateId = passJson.serialNumber ?? uuid();
 
     return { templateId, passJson, abstractModel };
   });
@@ -94,11 +96,23 @@ export const buildRouter = makeRouter(() => [
     input: {
       query: t.type({
         templateId: t.string,
+        /**
+         * The value for `barcode.message` field in `pass.json`.
+         */
         barcode: t.string,
+        /**
+         * An optional payload to fill the Pass template. If undefined, the application
+         * will attempt to decode it from the given `barcode`.
+         *
+         * The field values are lookup via `Lodash#get` function, you must specify each
+         * templated field in `key: a.b[1].c` format. If no matched value found from the
+         * payload, original value in the template will be used.
+         */
+        payload: t.union([t.string, t.undefined]),
         /**
          * The Pass templates are cached in memory during the application runtime.
          * You can enable this flag to force refreshing the templates for development
-         * purposes. We only apply truthy on this value.
+         * purposes. We only apply truthy check on this value.
          */
         forceReload: t.union([t.string, t.undefined]),
       }),
@@ -121,20 +135,25 @@ export const buildRouter = makeRouter(() => [
       const payload = await hcertDecode(barcode);
       logger.debug('Generate iOS Wallet Pass with decoded payload', payload);
 
-      const pass = await createPass(template.abstractModel);
-
-      // TODO Why the library doesn't support updating the serialNumber?
-      //
-      // The combination of pass type identifier and serial number is used throughout
-      // PassKit to uniquely identify a pass. Two passes of the same type with the same
-      // serial number are understood to be the same pass, even if other information
-      // on them differs.
+      const pass = await createPass(template.abstractModel, undefined, {
+        overrides: {
+          /**
+           * Assign a unique identifier for the generated Wallet Pass.
+           *
+           * The combination of pass type identifier and serial number is used throughout
+           * PassKit to uniquely identify a pass. Two passes of the same type with the same
+           * serial number are understood to be the same pass, even if other information
+           * on them differs.
+           *
+           * This field is important if you intent to push Pass Updates.
+           * @see {@link https://developer.apple.com/documentation/walletpasses}
+           */
+          serialNumber: uuid(),
+        },
+      });
 
       // Adding some settings to be written inside pass.json
       pass.barcodes(barcode);
-
-      // const foo = pass.primaryFields.pop();
-      // pass.primaryFields.push(foo);
 
       // TODO Why the library's `FieldsArray#splice` function doesn't work?
       //      It will results in an invalid Pass bundle.
