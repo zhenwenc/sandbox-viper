@@ -33,11 +33,7 @@ dotenv.config({ path: '.env.local' });
     res.status(200).send('Ok');
   });
 
-  const iosPassHandlerCtx = await iosPassHandlers.createHandlerContext(logger);
-  const contextMiddleware = setRequestContext(async () => ({
-    logger,
-    ...iosPassHandlerCtx,
-  }));
+  const contextMiddleware = setRequestContext({ logger });
   app.use(contextMiddleware);
 
   // -----------------------------------------------------------------------
