@@ -132,7 +132,7 @@ export const buildRouter = makeRouter(() => {
         });
 
         // Generate the stream .pkpass file stream
-        const passName = 'sample-pass';
+        const passName = `viper-${Date.now()}`;
         logger.info(`Generating pkpass file: ${passName}`);
 
         const stream = pass.generate();
