@@ -121,8 +121,8 @@ export const buildRouter = makeRouter(() => {
         // `auxiliaryFields` fields will be combined into one row. Watch out for the maximum
         // number of displayable fields.
         //
-        // NOTE Yet another pitfall, the "value" attribute must be defined in each field,
-        // or they won't be picked up by the `passkit-generator` library.
+        // NOTE Yet another pitfall, the "value" attribute must always be defined for each,
+        // field in the template, otherwise it won't be picked up by the library.
         //
         const fieldArrays = [pass.primaryFields, pass.secondaryFields, pass.auxiliaryFields];
         fieldArrays.forEach(fieldArray => {
