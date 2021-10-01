@@ -124,7 +124,7 @@ export const buildRouter = makeRouter(() => {
         const fieldArrays = [pass.primaryFields, pass.secondaryFields, pass.auxiliaryFields];
         fieldArrays.forEach(fieldArray => {
           fieldArray.forEach(field => {
-            field.value = get(passPayload, field.key) ?? field.value;
+            field.value = get({ data: passPayload }, field.key) ?? field.value;
           });
         });
 

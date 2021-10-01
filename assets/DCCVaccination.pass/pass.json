@@ -16,19 +16,19 @@
   "generic" : {
     "primaryFields" : [
       {
-        "key" : "nam.fn",
+        "key" : "data.nam.fn",
         "label" : "SURNAME",
         "value": ""
       }
     ],
     "secondaryFields" : [
       {
-        "key" : "nam.gn",
+        "key" : "data.nam.gn",
         "label" : "GIVEN NAME",
         "value": ""
       },
       {
-        "key" : "dob",
+        "key" : "data.dob",
         "label" : "DATE OF BIRTH",
         "value": ""
       }
