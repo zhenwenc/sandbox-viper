@@ -101,6 +101,7 @@ export const buildRouter = makeRouter(() => {
              * @see {@link https://developer.apple.com/documentation/walletpasses}
              */
             serialNumber: uuid(),
+            authenticationToken: uuid(),
           },
         });
 
