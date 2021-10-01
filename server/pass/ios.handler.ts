@@ -4,11 +4,11 @@ import { v4 as uuid } from 'uuid';
 import { oneLineTrim as markdown } from 'common-tags';
 import { createPass } from 'passkit-generator';
 
-import { NotFoundError } from '@navch/common';
+import { Logger, NotFoundError } from '@navch/common';
 import { makeHandler, makeRouter } from '@navch/express';
 
 import { buildPassTemplates, buildPassTemplateCache } from './ios.template';
-import { inferDecoder } from './decoder';
+import { decode } from './decoder';
 
 export const buildRouter = makeRouter(() => {
   let passTemplateCacheExpiry = -1;
@@ -18,6 +18,13 @@ export const buildRouter = makeRouter(() => {
    * requests to reduce the overhead of hitting the filesystem.
    */
   const passTemplateCache = buildPassTemplateCache();
+  const refreshPassTemplateCache = async (logger: Logger, forceReload = false) => {
+    if (forceReload || Date.now() > passTemplateCacheExpiry) {
+      const templates = await buildPassTemplates(logger);
+      await Promise.all(templates.map(item => passTemplateCache.setItem(item)));
+      passTemplateCacheExpiry = Date.now() + 3600 * 1000;
+    }
+  };
 
   return [
     makeHandler({
@@ -69,11 +76,7 @@ export const buildRouter = makeRouter(() => {
         const { templateId, barcode, payload, forceReload } = args;
 
         // Refresh the local Wallet Pass templates if needed
-        if (forceReload || Date.now() > passTemplateCacheExpiry) {
-          const templates = await buildPassTemplates(logger);
-          await Promise.all(templates.map(item => passTemplateCache.setItem(item)));
-          passTemplateCacheExpiry = Date.now() + 3600 * 1000;
-        }
+        await refreshPassTemplateCache(logger, Boolean(forceReload));
 
         // Fine Wallet Pass template by ID
         const passTemplate = await passTemplateCache.getItem(templateId);
@@ -84,7 +87,7 @@ export const buildRouter = makeRouter(() => {
 
         // Attempt to obtain the Wallet Pass template payload by decoding the input
         // barcode when `payload` argument is undefined.
-        const passPayload = payload ? JSON.parse(payload) : await inferDecoder(barcode)(barcode, logger);
+        const passPayload = payload ? JSON.parse(payload) : await decode(barcode, logger);
         logger.debug('Generate iOS Wallet Pass with decoded payload', passPayload);
 
         const pass = await createPass(passTemplate.abstractModel, undefined, {
@@ -149,6 +152,7 @@ export const buildRouter = makeRouter(() => {
       `,
       handle: async (_1, _2, { res, logger }) => {
         logger.debug('Return predefined iOS Wallet Pass templates');
+        await refreshPassTemplateCache(logger);
 
         const iosPassTemplates = await passTemplateCache.getAll();
         const results = iosPassTemplates.map(template => ({

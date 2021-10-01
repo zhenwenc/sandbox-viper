@@ -1,11 +1,11 @@
 import { inflate } from 'pako';
 import { Logger, threadP } from '@navch/common';
 
-export function inferDecoder(input: string) {
-  if (/^HC1.+/.test(input)) {
-    return hcertDecode;
+export async function decode(input: string, logger: Logger) {
+  if (/^HC1.+/.test(input) || /^NZCP.+/.test(input)) {
+    return await hcertDecode(input, logger);
   }
-  throw new Error('No match decoder found for input');
+  return {};
 }
 
 // Zlib to COSE to CBOR to JSON
