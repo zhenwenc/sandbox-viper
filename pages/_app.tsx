@@ -1,6 +1,7 @@
 import type { AppProps } from 'next/app';
 
 import { Theme, ThemeContext } from '@navch-ui/styles';
+import { OverlayContainer } from '@navch-ui/core';
 
 const baseTheme = new Theme();
 export const theme = Theme.extend(baseTheme, {
@@ -20,6 +21,9 @@ export const theme = Theme.extend(baseTheme, {
     },
   },
   border: {
+    color: {
+      base: baseTheme.color.text.muted,
+    },
     radius: baseTheme.spacing(2),
   },
 });
@@ -28,8 +32,12 @@ export default function App(props: AppProps) {
   const { Component, pageProps } = props;
 
   return (
-    <ThemeContext.Provider value={theme}>
-      <Component {...pageProps} />
-    </ThemeContext.Provider>
+    <>
+      <ThemeContext.Provider value={theme}>
+        <Component {...pageProps} />
+      </ThemeContext.Provider>
+
+      <OverlayContainer />
+    </>
   );
 }
