@@ -12,6 +12,7 @@ export const theme = Theme.extend(baseTheme, {
       tint3: '#2E3C43',
       tint4: '#18222F',
       inverse: baseTheme.color.ui.tint2,
+      backdrop: baseTheme.color.scale.neutral.N6A,
     },
     text: {
       base: '#CFD8DC',
