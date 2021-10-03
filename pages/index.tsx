@@ -56,8 +56,8 @@ export default function Index() {
           <Text variant="subtitle1" pv={4}>
             {markdown`
               Please enter the message to be encoded in the barcode area, or Scan
-              a QR code from camera. The message will be represented in the defined
-              message type in the template.
+              a QR code from camera. The message will be represented based on the
+              defined message type in the template.
             `}
           </Text>
           <Input
@@ -82,7 +82,7 @@ export default function Index() {
           <Text variant="h6">{'Pick a Pass Template'}</Text>
           <Text variant="subtitle1" pv={4}>
             {markdown`
-              Pick a template for the pass, or upload your custom template. You can
+              Generate a pass with a predefined template, or upload your template. You can
               preview the downloaded pass with the Pass Viewer app on macOS. If you're
               in an iOS device, you will be prompted to add the generated pass into the
               pass library directly.
