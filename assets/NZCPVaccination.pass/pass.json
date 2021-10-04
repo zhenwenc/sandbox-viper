@@ -1,0 +1,38 @@
+{
+  "formatVersion" : 1,
+  "serialNumber" : "nzcp",
+  "webServiceURL" : "https://mattrglobal.github.io/nzcp/qvnNK89kiJRoEindxA3U",
+  "authenticationToken" : "vxwxd7J8AlNNFPS8k0a0FfUFtq0ewzFdc",
+  "barcode" : {
+    "format" : "PKBarcodeFormatQR",
+    "messageEncoding" : "iso-8859-1",
+    "message" : ""
+  },
+  "organizationName" : "NZ COVID Passport",
+  "description" : "NZ COVID Passport",
+  "logoText" : "NZ COVID Passport",
+  "foregroundColor" : "rgb(0, 0, 0)",
+  "backgroundColor" : "rgb(255, 235, 153)",
+  "generic" : {
+    "primaryFields" : [
+      {
+        "key" : "data.lastName",
+        "label" : "SURNAME",
+        "value": ""
+      }
+    ],
+    "secondaryFields" : [
+      {
+        "key" : "data.firstName",
+        "label" : "GIVEN NAME",
+        "value": ""
+      },
+      {
+        "key" : "data.dob",
+        "label" : "DATE OF BIRTH",
+        "value": ""
+      }
+    ],
+    "backFields" : []
+  }
+}
