@@ -87,7 +87,7 @@ export const buildRouter = makeRouter(() => {
 
         // Attempt to obtain the Wallet Pass template payload by decoding the input
         // barcode when `payload` argument is undefined.
-        const passPayload = payload ? JSON.parse(payload) : await decode(barcode, logger);
+        const passPayload = payload ? { subject: JSON.parse(payload) } : await decode(barcode, logger);
         logger.debug('Generate iOS Wallet Pass with decoded payload', passPayload);
 
         const pass = await createPass(passTemplate.abstractModel, undefined, {
@@ -127,7 +127,7 @@ export const buildRouter = makeRouter(() => {
         const fieldArrays = [pass.primaryFields, pass.secondaryFields, pass.auxiliaryFields];
         fieldArrays.forEach(fieldArray => {
           fieldArray.forEach(field => {
-            field.value = get({ data: passPayload }, field.key) ?? field.value;
+            field.value = get({ data: passPayload.subject }, field.key) ?? field.value;
           });
         });
 

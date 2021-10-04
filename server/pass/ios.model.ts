@@ -202,11 +202,11 @@ export async function parseModelZip(modelZip: Buffer): Promise<PassModelBundle> 
 export async function getLocalModels(rootDir: string, logger: Logger) {
   const promises = fs.readdirSync(rootDir, { withFileTypes: true }).map(dirent => {
     if (dirent.name.endsWith('.pass') && dirent.isDirectory()) {
-      logger.info(`Loading Apple Pass template: ${dirent.name}`);
+      logger.debug(`Loading Apple Pass template: ${dirent.name}`);
       return parseModelDir(path.join(rootDir, dirent.name));
     }
     if (dirent.name.endsWith('.pass.zip') && dirent.isFile()) {
-      logger.info(`Loading Apple Pass template bundle: ${dirent.name}`);
+      logger.debug(`Loading Apple Pass template bundle: ${dirent.name}`);
       return parseModelZip(fs.readFileSync(path.join(rootDir, dirent.name)));
     }
     logger.debug(`Skipped loading unknown file: ${dirent.name}`);
