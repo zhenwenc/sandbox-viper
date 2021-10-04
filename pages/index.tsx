@@ -17,8 +17,17 @@ export default function Index() {
   const [barcode, setBarcode] = useState<string>();
   const [showBarcodeReader, setBarcodeReader] = useState(false);
 
-  const handleSelectTemplate = useLatestCallback((templateId: string) => {
+  const handleSelectAppleTemplate = useLatestCallback((templateId: string) => {
     router.replace({ pathname: '/pass/ios', query: { templateId, barcode } });
+  });
+
+  const handleSelectGoogleTemplate = useLatestCallback(async () => {
+    const resp = await fetch('/viper/pass/android');
+    if (!resp.ok) {
+      throw new Error('Failed to generate Google Pay Pass');
+    }
+    const { redirectTo } = (await resp.json()) as { redirectTo: string };
+    window.location.href = redirectTo;
   });
 
   const handleBarcodeChange = useLatestCallback((input: string) => {
@@ -27,7 +36,7 @@ export default function Index() {
   });
 
   const [templates, fetchTemplates] = useAsyncFn(async () => {
-    const resp = await fetch('/viper/pass/templates/ios');
+    const resp = await fetch('/viper/pass/ios/templates');
     if (!resp.ok) {
       throw new Error('Failed to fetch Apple Pass templates');
     }
@@ -79,16 +88,28 @@ export default function Index() {
         </Box>
 
         <Box classes={styles.card}>
-          <Text variant="h6">{'Pick a Pass Template'}</Text>
+          <Text variant="h6">{'Pick an Apple Pass Template'}</Text>
           <Text variant="subtitle1" pv={4}>
             {markdown`
-              Generate a pass with a predefined template, or upload your template. You can
-              preview the downloaded pass with the Pass Viewer app on macOS. If you're
-              in an iOS device, you will be prompted to add the generated pass into the
-              pass library directly.
+              Generate an Apple pass with a predefined template, or upload your template.
+              You can preview the downloaded .pkpass bundle with the Pass Viewer app on macOS.
+              If you're in an iOS device, you will be prompted to add the generated pass into
+              the pass library directly.
             `}
           </Text>
-          <TemplatePicker templates={templates.value || []} onSelect={handleSelectTemplate} />
+          <TemplatePicker templates={templates.value || []} onSelect={handleSelectAppleTemplate} />
+        </Box>
+
+        <Box classes={styles.card}>
+          <Text variant="h6">{'Pick a Google Pass Template'}</Text>
+          <Text variant="subtitle1" pv={4}>
+            {markdown`
+              Generate a Google Pay pass with a predefined template, or upload your template.
+              The pass will be saved into your Google Pay account once succeed. You must visit
+              the site in an Android device or an emulator.
+            `}
+          </Text>
+          <Button onClick={handleSelectGoogleTemplate}>{'Save to Google Pay'}</Button>
         </Box>
       </Box>
 

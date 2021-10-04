@@ -8,7 +8,9 @@ import { compose, trim } from 'ramda';
 import { Logger } from '@navch/common';
 import { setRequestContext } from '@navch/express';
 
+import { AppConfig } from './server/config';
 import * as iosPassHandlers from './server/pass/ios.handler';
+import * as androidPassHandlers from './server/pass/android.handler';
 
 // Load environment variables from .env* files. It will not modify any
 // environment variables that have already been set.
@@ -45,8 +47,20 @@ dotenvFiles.forEach(dotenvFile => {
   app.use(contextMiddleware);
 
   // -----------------------------------------------------------------------
+  // TODO Launch services that have sufficient configs
+  //
+  // This project is designed for demonstration purposes that you might only be
+  // interested in some of the functionalities it provides. Therefore, we don't
+  // enforce you to provide all environment variables to start with.
 
-  app.use('/viper', iosPassHandlers.buildRouter({}));
+  app.use('/viper/pass/ios', iosPassHandlers.buildRouter({}));
+
+  try {
+    const config = new AppConfig();
+    app.use('/viper/pass/android', androidPassHandlers.buildRouter({ config }));
+  } catch (err) {
+    logger.warn(`Disabled router '/viper/pass/android': ${err}`);
+  }
 
   // -----------------------------------------------------------------------
 

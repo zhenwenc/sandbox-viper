@@ -116,7 +116,7 @@ export async function parseModelDir(modelDir: string): Promise<PassModelBundle> 
       'it.lproj/pass.strings': readFile(path.join(modelDir, 'it.lproj/pass.strings')),
     };
   } catch (err) {
-    err.message = `Failed to parse model folder at ${modelDir}: ${err.message}`;
+    err.message = `Failed to parse Apple Pass model at ${modelDir}: ${err.message}`;
     throw err;
   }
 }
@@ -209,7 +209,6 @@ export async function getLocalModels(rootDir: string, logger: Logger) {
       logger.debug(`Loading Apple Pass template bundle: ${dirent.name}`);
       return parseModelZip(fs.readFileSync(path.join(rootDir, dirent.name)));
     }
-    logger.debug(`Skipped loading unknown file: ${dirent.name}`);
     return Promise.resolve(undefined);
   });
 

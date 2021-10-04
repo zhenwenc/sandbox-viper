@@ -1,0 +1,40 @@
+{
+  "templateId": "loyalty",
+  "classType": "loyaltyClass",
+  "classReference": {
+    "version": "1",
+    "kind": "walletobjects#loyaltyClass",
+    "title": "Codelab Loyalty Pass",
+    "reviewStatus": "underReview",
+    "programLogo": {
+      "kind": "walletobjects#image",
+      "sourceUri": {
+        "uri": "https://gpay-loyaltyapi-demo.web.app/images/logo.png"
+      }
+    },
+    "localizedProgramName": {
+      "kind": "walletobjects#localizedString",
+      "defaultValue": {
+        "kind": "walletobjects#translatedString",
+        "language": "en-GB",
+        "value": "Codelab Demo"
+      }
+    },
+    "allowMultipleUsersPerObject": true,
+    "countryCode": "NZ",
+    "enableSmartTap": false,
+    "localizedIssuerName": {
+      "kind": "walletobjects#localizedString",
+      "defaultValue": {
+        "kind": "walletobjects#translatedString",
+        "language": "en-GB",
+        "value": "Codelab 3388000000018600875"
+      }
+    },
+    "multipleDevicesAndHoldersAllowedStatus": "multipleHolders"
+  },
+  "objectType": "loyaltyObject",
+  "objectReference": {
+    "kind": "walletobjects#loyaltyObject"
+  }
+}

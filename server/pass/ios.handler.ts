@@ -7,7 +7,8 @@ import { createPass } from 'passkit-generator';
 import { Logger, NotFoundError } from '@navch/common';
 import { makeHandler, makeRouter } from '@navch/express';
 
-import { buildPassTemplates, buildPassTemplateCache } from './ios.template';
+import { buildPassTemplates, PassTemplate } from './ios.template';
+import { buildPassTemplateCache } from './cache';
 import { decode } from './decoder';
 
 export const buildRouter = makeRouter(() => {
@@ -17,7 +18,7 @@ export const buildRouter = makeRouter(() => {
    * It is recommended to cache the prepared PassModel in memory to be reused by multiple
    * requests to reduce the overhead of hitting the filesystem.
    */
-  const passTemplateCache = buildPassTemplateCache();
+  const passTemplateCache = buildPassTemplateCache<PassTemplate>();
   const refreshPassTemplateCache = async (logger: Logger, forceReload = false) => {
     if (forceReload || Date.now() > passTemplateCacheExpiry) {
       const templates = await buildPassTemplates(logger);
@@ -28,7 +29,7 @@ export const buildRouter = makeRouter(() => {
 
   return [
     makeHandler({
-      route: '/pass/ios',
+      route: '/',
       method: 'GET',
       description: markdown`
         The primary endpoint for generating Apple Wallet Pass from a defined template.
@@ -72,8 +73,8 @@ export const buildRouter = makeRouter(() => {
         }),
       },
       handle: async (_1, args, { res, logger }) => {
-        logger.info('Generate iOS Wallet Pass with arguments', args);
         const { templateId, barcode, payload, forceReload } = args;
+        logger.info('Generate iOS Wallet Pass with arguments', args);
 
         // Refresh the local Wallet Pass templates if needed
         await refreshPassTemplateCache(logger, Boolean(forceReload));
@@ -144,10 +145,10 @@ export const buildRouter = makeRouter(() => {
       },
     }),
     makeHandler({
-      route: '/pass/templates/ios',
+      route: '/templates',
       method: 'GET',
       description: markdown`
-        List all available Apple Wallet Pass templates in the application. This could be
+        List the available Apple Wallet Pass templates in the application. This could be
         useful to find a template with dynamic identifier.
       `,
       handle: async (_1, _2, { res, logger }) => {

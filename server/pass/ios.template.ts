@@ -78,30 +78,3 @@ export async function buildPassTemplates(logger: Logger): Promise<PassTemplate[]
 
   return await Promise.all(promises);
 }
-
-export type PassTemplateCache = ReturnType<typeof buildPassTemplateCache>;
-export function buildPassTemplateCache() {
-  const store = new Map<string, { data: PassTemplate; exp: number }>();
-  const prune = () => {
-    store.forEach(({ exp }, key) => {
-      if (Date.now() < exp) return;
-      store.delete(key);
-    });
-  };
-  return {
-    async setItem(value: PassTemplate, exp = 86400 * 1000): Promise<void> {
-      store.set(value.templateId, {
-        data: value,
-        exp: Date.now() + exp * 1000,
-      });
-    },
-    async getItem(key: string): Promise<PassTemplate | undefined> {
-      prune();
-      const record = store.get(key);
-      return record?.data;
-    },
-    async getAll(): Promise<PassTemplate[]> {
-      return Array.from(store.values()).map(value => value.data);
-    },
-  };
-}
