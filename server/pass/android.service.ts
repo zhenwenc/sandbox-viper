@@ -1,79 +1,10 @@
-import * as t from 'io-ts';
 import jwt from 'jsonwebtoken';
-import pluralize from 'pluralize';
 import { GaxiosError } from 'gaxios';
 import { GoogleAuth } from 'google-auth-library';
 import { Logger, NotFoundError, recoverP } from '@navch/common';
 import { validate } from '@navch/codec';
 
-export type WalletObjectType = t.TypeOf<typeof WalletObjectType>;
-export const WalletObjectType = t.union([
-  t.literal('eventTicketObject'),
-  t.literal('flightObject'),
-  t.literal('giftCardObject'),
-  t.literal('loyaltyObject'),
-  t.literal('offerObject'),
-  t.literal('transitObject'),
-]);
-
-export type WalletClassType = t.TypeOf<typeof WalletClassType>;
-export const WalletClassType = t.union([
-  t.literal('eventTicketClass'),
-  t.literal('flightClass'),
-  t.literal('giftCardClass'),
-  t.literal('loyaltyClass'),
-  t.literal('offerClass'),
-  t.literal('transitClass'),
-]);
-
-export type WalletClass = t.TypeOf<typeof WalletClass>;
-export const WalletClass = t.type({
-  /**
-   * An unique identifier for this Google Pay Wallet Pass class.
-   */
-  id: t.string,
-  /**
-   * The status of the class. This field can be set to `draft` or `underReview` using
-   * the insert, patch, or update API calls. Once the review state is changed from
-   * draft it may not be changed back to draft.
-   *
-   * You should keep this field to `draft` when the class is under development. A draft
-   * class cannot be used to create any object.
-   *
-   * You should set this field to underReview when you believe the class is ready for
-   * use. The platform will automatically set this field to `approved` and it can be
-   * immediately used to create or migrate objects.
-   *
-   * When updating an already `approved` class you should keep setting this field to
-   * `underReview`.
-   */
-  reviewStatus: t.union([t.literal('draft'), t.literal('approved'), t.literal('underReview')]),
-});
-
-export type WalletObject = t.TypeOf<typeof WalletObject>;
-export const WalletObject = t.type({
-  /**
-   * An unique identifier for this Google Pay Wallet Pass object. Must follow
-   * this format: `issuerId.identifier` where `identifier` should be the same
-   * as the subject's identifier, such as `accountId` for Loyalty Pass.
-   *
-   * There are character restrictions for this value. TODO
-   */
-  id: t.string,
-  /**
-   * The class associated with this object. The class must be of the same type as
-   * this object, must already exist, and must be approved.
-   *
-   * Class IDs should follow the format `issuer_id.identifier` where the former is
-   * issued by Google and latter is chosen by you.
-   */
-  classId: t.string,
-  /**
-   * The lazily created wallet object class for the skinny JWT flow, or to a copy
-   * of the inherited fields of the parent class.
-   */
-  classReference: t.union([t.unknown, t.undefined]),
-});
+import { WalletObject, WalletClass, WalletClassType, WalletObjectType } from './android.model';
 
 export type ListWalletClassRequest = {
   readonly logger: Logger;
@@ -242,18 +173,22 @@ export type SignPayPassTokenRequest = {
   readonly origins?: readonly string[];
   /**
    * An array of classes/objects to save.
+   *
+   * https://developers.google.com/pay/passes/guides/implement-the-api/save-passes-to-google-pay
    */
-  readonly records: { readonly id: string }[];
-  readonly recordType: WalletObjectType;
+  readonly payload: Record<string, unknown>;
 };
 // https://developers.google.com/pay/passes/reference/s2w-reference
 export async function signPayPassToken(req: SignPayPassTokenRequest) {
-  const { logger, issuer, issuerKey, origins, records, recordType } = req;
+  const { logger, issuer, issuerKey, origins, payload } = req;
   const claims = {
     // The audience for Google Pay API for Passes Objects will always be 'google'.
     aud: 'google',
     // The audience for Google Pay API for Passes Objects will always be 'savetoandroidpay'.
-    typ: 'savetoandroidpay',
+    // Fucking Google: inconsistent documentation
+    // typ: 'savetowallet',
+    // typ: 'savetoandroidpay',
+    typ: 'savetogooglepay',
     // Issued at time in seconds since epoch.
     iat: Math.floor(Date.now() / 1000),
     // Your OAuth 2.0 service account generated email address.
@@ -261,9 +196,8 @@ export async function signPayPassToken(req: SignPayPassTokenRequest) {
     // Array of domains to approve for JWT saving functionality.
     origins,
     // The issued payload object.
-    // https://developers.google.com/pay/passes/guides/implement-the-api/save-passes-to-google-pay
-    payload: { [pluralize(recordType)]: records.map(item => ({ id: item.id })) },
+    payload,
   };
-  logger.debug('Sign Google Wallet JWT token', { recordType, claims });
+  logger.debug('Sign Google Wallet JWT token', { claims });
   return jwt.sign(claims, issuerKey, { algorithm: 'RS256' });
 }

@@ -5,21 +5,17 @@ import path from 'path';
 import { Logger, isNotNullish } from '@navch/common';
 import { validate } from '@navch/codec';
 
-import { WalletClassType, WalletObjectType } from './android.service';
+import { WalletClassType, WalletClass, WalletObjectType, WalletObject } from './android.model';
 
 // https://developers.google.com/pay/passes/rest/v1/offerclass
 export type PassTemplate = t.TypeOf<typeof PassTemplate>;
 export const PassTemplate = t.type({
   templateId: t.string,
-  classType: WalletClassType,
-  classReference: t.type({
-    kind: t.string,
-    title: t.string,
-  }),
+  description: t.string,
+  classType: t.union([WalletClassType, t.undefined]),
+  classTemplate: t.union([WalletClass, t.undefined]),
   objectType: WalletObjectType,
-  objectReference: t.type({
-    kind: t.string,
-  }),
+  objectTemplate: WalletObject,
 });
 
 export type BuildPassTemplatesOptions = {

@@ -21,13 +21,8 @@ export default function Index() {
     router.replace({ pathname: '/pass/ios', query: { templateId, barcode } });
   });
 
-  const handleSelectGoogleTemplate = useLatestCallback(async () => {
-    const resp = await fetch('/viper/pass/android');
-    if (!resp.ok) {
-      throw new Error('Failed to generate Google Pay Pass');
-    }
-    const { redirectTo } = (await resp.json()) as { redirectTo: string };
-    window.location.href = redirectTo;
+  const handleSelectGoogleTemplate = useLatestCallback(async (templateId: string) => {
+    router.replace({ pathname: '/pass/android', query: { templateId, barcode } });
   });
 
   const handleBarcodeChange = useLatestCallback((input: string) => {
@@ -35,14 +30,23 @@ export default function Index() {
     setBarcodeReader(false);
   });
 
-  const [templates, fetchTemplates] = useAsyncFn(async () => {
+  const [applePassTemplates, fetchApplePassTemplates] = useAsyncFn(async () => {
     const resp = await fetch('/viper/pass/ios/templates');
     if (!resp.ok) {
       throw new Error('Failed to fetch Apple Pass templates');
     }
     return (await resp.json()) as TemplateInfo[];
   });
-  useMount(fetchTemplates); // Fetch on client-side only
+  useMount(fetchApplePassTemplates); // Fetch on client-side only
+
+  const [androidPassTemplates, fetchAndroidPassTemplates] = useAsyncFn(async () => {
+    const resp = await fetch('/viper/pass/android/templates');
+    if (!resp.ok) {
+      throw new Error('Failed to fetch Android Pass templates');
+    }
+    return (await resp.json()) as TemplateInfo[];
+  });
+  useMount(fetchAndroidPassTemplates); // Fetch on client-side only
 
   return (
     <Box id="apple-pass-generator" classes={styles.container}>
@@ -97,7 +101,7 @@ export default function Index() {
               the pass library directly.
             `}
           </Text>
-          <TemplatePicker templates={templates.value || []} onSelect={handleSelectAppleTemplate} />
+          <TemplatePicker templates={applePassTemplates.value || []} onSelect={handleSelectAppleTemplate} />
         </Box>
 
         <Box classes={styles.card}>
@@ -109,7 +113,10 @@ export default function Index() {
               the site in an Android device or an emulator.
             `}
           </Text>
-          <Button onClick={handleSelectGoogleTemplate}>{'Save to Google Pay'}</Button>
+          <TemplatePicker
+            templates={androidPassTemplates.value || []}
+            onSelect={handleSelectGoogleTemplate}
+          />
         </Box>
       </Box>
 

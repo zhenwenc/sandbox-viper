@@ -11,17 +11,15 @@ const GoogleCredentials = t.type({
   client_email: t.string,
 });
 
-export class AppConfig extends BaseConfig {
-  get googleCredentials() {
-    const credentials = this.read('GCP_CREDENTIALS');
+export class GooglePayPassConfig extends BaseConfig {
+  readonly issuerId = this.read('PASS_GOOGLE_PAY_ISSUER_ID');
+
+  readonly credentials = (() => {
+    const credentials = this.read('PASS_GOOGLE_GCP_CREDENTIALS');
+    // You can download the service account credentials JSON file
     if (credentials.startsWith('{')) {
       return validate(JSON.parse(credentials), GoogleCredentials);
     }
     return validate(require(credentials), GoogleCredentials);
-  }
-
-  readonly googlePass = {
-    issuerId: this.read('PASS_GOOGLE_PAY_ISSUER_ID', '3388000000018600875'),
-    loyaltyProgram: this.read('PASS_GOOGLE_LOYALTY_PROGRAM', 'codelab-demo'),
-  };
+  })();
 }

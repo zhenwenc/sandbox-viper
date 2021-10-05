@@ -1,11 +1,12 @@
 {
   "templateId": "loyalty",
+  "description": "Loyalty Pass",
   "classType": "loyaltyClass",
-  "classReference": {
+  "classTemplate": {
     "version": "1",
-    "kind": "walletobjects#loyaltyClass",
-    "title": "Codelab Loyalty Pass",
+    "id": "__PLACEHOLDER__",
     "reviewStatus": "underReview",
+    "title": "Demo Loyalty Pass",
     "programLogo": {
       "kind": "walletobjects#image",
       "sourceUri": {
@@ -34,7 +35,17 @@
     "multipleDevicesAndHoldersAllowedStatus": "multipleHolders"
   },
   "objectType": "loyaltyObject",
-  "objectReference": {
-    "kind": "walletobjects#loyaltyObject"
+  "objectTemplate": {
+    "id": "__PLACEHOLDER__",
+    "classId": "__PLACEHOLDER__",
+    "accountId": "data.uid",
+    "accountName": "Jack",
+    "state": "active",
+    "loyaltyPoints": {
+      "balance": {
+        "int": 101
+      },
+      "label": "Points"
+    }
   }
 }

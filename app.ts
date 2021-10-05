@@ -8,7 +8,7 @@ import { compose, trim } from 'ramda';
 import { Logger } from '@navch/common';
 import { setRequestContext } from '@navch/express';
 
-import { AppConfig } from './server/config';
+import { GooglePayPassConfig } from './server/config';
 import * as iosPassHandlers from './server/pass/ios.handler';
 import * as androidPassHandlers from './server/pass/android.handler';
 
@@ -56,7 +56,7 @@ dotenvFiles.forEach(dotenvFile => {
   app.use('/viper/pass/ios', iosPassHandlers.buildRouter({}));
 
   try {
-    const config = new AppConfig();
+    const config = new GooglePayPassConfig();
     app.use('/viper/pass/android', androidPassHandlers.buildRouter({ config }));
   } catch (err) {
     logger.warn(`Disabled router '/viper/pass/android': ${err}`);
