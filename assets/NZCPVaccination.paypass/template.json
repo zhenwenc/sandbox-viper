@@ -4,19 +4,17 @@
   "objectType": "covidCardObject",
   "objectTemplate": {
     "id": "__PLACEHOLDER__",
-    "title": "Demo COVID Vaccination Card",
-    "cardColorHex": "#22FF33",
+    "title": "COVID-19 Pass",
+    "cardColorHex": "#22ff33",
     "expiration": "2021-12-30",
     "logo": {
       "sourceUri": {
-        "description": "Pass Generator Team",
+        "description": "Mattr Dev Team",
         "uri": "https://www.gstatic.com/images/icons/material/system_gm/2x/healing_black_48dp.png"
       }
     },
     "patientDetails": {
-      "dateOfBirth": "1881-05-19",
-      "identityAssuranceLevel": "IAL1.4",
-      "patientId": "D3B5BBF4-8DDA-45F9-833F-64581A9C158A",
+      "dateOfBirth": "1981-05-19",
       "patientName": "Alice Smith"
     }
   }

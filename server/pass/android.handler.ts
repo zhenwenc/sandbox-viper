@@ -136,6 +136,7 @@ export const buildRouter = makeRouter(({ config }: HandlerContext) => {
           barcode: {
             type: 'qrCode',
             value: barcode,
+            alternateText: '12345',
           },
         };
 
@@ -180,6 +181,7 @@ export const buildRouter = makeRouter(({ config }: HandlerContext) => {
                 ],
                 ...(classType && { [pluralize(classType)]: [classRecord] }),
               },
+              origins: ['http://localhost:8080'],
             });
           }
         });
@@ -189,7 +191,7 @@ export const buildRouter = makeRouter(({ config }: HandlerContext) => {
         logger.info('Generated Google Pay URL', { url: redirectTo });
 
         if (req.headers['accept'] === 'application/json') {
-          res.send({ redirectTo });
+          res.send({ token, redirectTo });
         } else {
           res.redirect(redirectTo);
         }
