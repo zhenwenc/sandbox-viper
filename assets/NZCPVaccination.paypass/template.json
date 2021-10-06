@@ -3,7 +3,8 @@
   "description": "COVID Vaccination Card",
   "objectType": "covidCardObject",
   "objectTemplate": {
-    "id": "__PLACEHOLDER__",
+    "id": "{{ pass.id }}",
+    "issuerId": "{{ pass.issuerId }}",
     "title": "COVID-19 Pass",
     "cardColorHex": "#22ff33",
     "expiration": "2021-12-30",
@@ -12,6 +13,11 @@
         "description": "Mattr Dev Team",
         "uri": "https://www.gstatic.com/images/icons/material/system_gm/2x/healing_black_48dp.png"
       }
+    },
+    "barcode": {
+      "type": "qrCode",
+      "value": "{{ pass.barcode }}",
+      "alternateText": "NZCP Credential"
     },
     "patientDetails": {
       "dateOfBirth": "1981-05-19",

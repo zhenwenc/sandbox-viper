@@ -1,9 +1,7 @@
 import * as t from 'io-ts';
-import get from 'lodash/get';
 import pluralize from 'pluralize';
 import cloneDeep from 'lodash/cloneDeep';
 import cloneDeepWith from 'lodash/cloneDeepWith';
-import { omit } from 'ramda';
 import { v4 as uuid } from 'uuid';
 import { oneLineTrim as markdown } from 'common-tags';
 import { GoogleAuth } from 'google-auth-library';
@@ -16,6 +14,7 @@ import { WalletClass, WalletObject } from './android.model';
 import { buildPassTemplates, PassTemplate } from './android.template';
 import { buildPassTemplateCache } from './cache';
 import { decode } from './decoder';
+import { resolveTemplateValue } from '../utils';
 import { GooglePayPassConfig } from '../config';
 
 export type HandlerContext = {
@@ -113,32 +112,30 @@ export const buildRouter = makeRouter(({ config }: HandlerContext) => {
         const passPayload = payload ? { subject: JSON.parse(payload) } : await decode(barcode, logger);
         logger.debug('Generate PayPass with decoded payload', passPayload);
 
-        // Substitute field values in the generated pass with the input data. The ordering
-        // of fields within the list is significant.
+        // Construct the PayPass class with the template if provided
         //
-        const passFields = cloneDeepWith(cloneDeep(objectTemplate), key => {
-          if (typeof key !== 'string') return undefined;
-          return get({ data: passPayload.subject }, key);
-        });
-
-        // Construct the PayPass class with the template.
         const classRecord: WalletClass = {
           ...classTemplate,
           id: `${issuerId}.${templateId}`,
           reviewStatus: 'underReview',
         };
 
-        // Construct the PayPass object with the decoded payload.
-        const objectRecord: WalletObject = {
-          ...passFields,
-          id: `${issuerId}.${uuid()}`,
-          issuerId,
-          barcode: {
-            type: 'qrCode',
-            value: barcode,
-            alternateText: '12345',
+        // Construct the PayPass object with the decoded payload by substituting field
+        // values in the generated pass with the input data.
+        //
+        const objectFields = {
+          pass: {
+            id: `${issuerId}.${uuid()}`,
+            classId: classRecord.id,
+            barcode,
+            issuerId,
           },
+          data: passPayload.subject,
         };
+        const objectRecord: WalletObject = cloneDeepWith(cloneDeep(objectTemplate), key => {
+          if (typeof key !== 'string') return undefined;
+          return resolveTemplateValue(objectFields, key);
+        });
 
         // Generate JWT token for "Save To Android Pay" button
         //
@@ -172,13 +169,7 @@ export const buildRouter = makeRouter(({ config }: HandlerContext) => {
               issuer: credentials.client_email,
               issuerKey: credentials.private_key,
               payload: {
-                // Why this is so ugly? Ask Google! ffs!
-                [pluralize(objectType)]: [
-                  {
-                    ...omit(['classId'], objectRecord),
-                    ...(classType && { classId: classRecord.id }),
-                  },
-                ],
+                [pluralize(objectType)]: [objectRecord],
                 ...(classType && { [pluralize(classType)]: [classRecord] }),
               },
               origins: ['http://localhost:8080'],

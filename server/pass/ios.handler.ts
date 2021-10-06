@@ -1,5 +1,4 @@
 import * as t from 'io-ts';
-import { get } from 'lodash';
 import { v4 as uuid } from 'uuid';
 import { oneLineTrim as markdown } from 'common-tags';
 import { createPass } from 'passkit-generator';
@@ -10,6 +9,7 @@ import { makeHandler, makeRouter } from '@navch/express';
 import { buildPassTemplates, PassTemplate } from './ios.template';
 import { buildPassTemplateCache } from './cache';
 import { decode } from './decoder';
+import { resolveTemplateValue } from '../utils';
 
 export const buildRouter = makeRouter(() => {
   let passTemplateCacheExpiry = -1;
@@ -128,7 +128,8 @@ export const buildRouter = makeRouter(() => {
         const fieldArrays = [pass.primaryFields, pass.secondaryFields, pass.auxiliaryFields];
         fieldArrays.forEach(fieldArray => {
           fieldArray.forEach(field => {
-            field.value = get({ data: passPayload.subject }, field.key) ?? field.value;
+            const fieldValues = { data: passPayload.subject };
+            field.value = resolveTemplateValue(fieldValues, field.value) ?? field.value;
           });
         });
 

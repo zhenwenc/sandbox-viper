@@ -36,9 +36,14 @@
   },
   "objectType": "loyaltyObject",
   "objectTemplate": {
-    "id": "__PLACEHOLDER__",
-    "classId": "__PLACEHOLDER__",
-    "accountId": "data.uid",
+    "id": "{{ pass.id }}",
+    "classId": "{{ pass.classId }}",
+    "barcode": {
+      "type": "qrCode",
+      "value": "{{ pass.barcode }}",
+      "alternateText": "Loyalty Point Redeem Code"
+    },
+    "accountId": "a1121866-8ed2-420e-b749-c17909aa461f",
     "accountName": "Jack",
     "state": "active",
     "loyaltyPoints": {
