@@ -18,7 +18,7 @@
       "defaultValue": {
         "kind": "walletobjects#translatedString",
         "language": "en-GB",
-        "value": "Codelab Demo"
+        "value": "Demo Loyalty Card"
       }
     },
     "allowMultipleUsersPerObject": true,
@@ -29,7 +29,7 @@
       "defaultValue": {
         "kind": "walletobjects#translatedString",
         "language": "en-GB",
-        "value": "Codelab 3388000000018600875"
+        "value": "Codelab Demo"
       }
     },
     "multipleDevicesAndHoldersAllowedStatus": "multipleHolders"
@@ -43,8 +43,8 @@
       "value": "{{ pass.barcode }}",
       "alternateText": "Loyalty Point Redeem Code"
     },
-    "accountId": "a1121866-8ed2-420e-b749-c17909aa461f",
-    "accountName": "Jack",
+    "accountId": "{{ data.accountId }}",
+    "accountName": "{{ data.accountName }}",
     "state": "active",
     "loyaltyPoints": {
       "balance": {
