@@ -8,7 +8,7 @@ import { compose, trim } from 'ramda';
 import { Logger } from '@navch/common';
 import { setRequestContext } from '@navch/express';
 
-import { GooglePayPassConfig } from './server/config';
+import { AppConfig, ApplePassConfig, GooglePayPassConfig } from './server/config';
 import * as iosPassHandlers from './server/pass/ios.handler';
 import * as androidPassHandlers from './server/pass/android.handler';
 
@@ -23,12 +23,8 @@ dotenvFiles.forEach(dotenvFile => {
 });
 
 (async function bootstrap() {
-  const port = process.env.PORT || '3000';
-
-  const logger = new Logger({
-    name: 'viper',
-    prettyPrint: process.env.NODE_ENV !== 'production',
-  });
+  const config = new AppConfig();
+  const logger = new Logger({ name: 'viper', prettyPrint: !config.isProdEnv });
   const requestLogger = morgan('dev', {
     stream: { write: compose(logger.debug, trim) },
     skip: ({ path, baseUrl }: express.Request) => {
@@ -53,24 +49,33 @@ dotenvFiles.forEach(dotenvFile => {
   // interested in some of the functionalities it provides. Therefore, we don't
   // enforce you to provide all environment variables to start with.
 
-  app.use('/viper/pass/ios', iosPassHandlers.buildRouter({}));
+  try {
+    const router = iosPassHandlers.buildRouter({
+      config: new ApplePassConfig(),
+    });
+    app.use('/viper/pass/ios', router);
+  } catch (err) {
+    logger.warn(`Disabled router '/viper/pass/android': ${err}`);
+  }
 
   try {
-    const config = new GooglePayPassConfig();
-    app.use('/viper/pass/android', androidPassHandlers.buildRouter({ config }));
+    const router = androidPassHandlers.buildRouter({
+      config: new GooglePayPassConfig(),
+    });
+    app.use('/viper/pass/android', router);
   } catch (err) {
     logger.warn(`Disabled router '/viper/pass/android': ${err}`);
   }
 
   // -----------------------------------------------------------------------
 
-  const web = next({ dev: process.env.NODE_ENV !== 'production' });
+  const web = next({ dev: !config.isProdEnv });
   await web.prepare();
 
   const webHandler = web.getRequestHandler();
   app.all('*', (req, res) => webHandler(req, res));
 
-  const server = app.listen(port, () => {
+  const server = app.listen(config.port, () => {
     logger.info(`Server listening at ${JSON.stringify(server.address())}`);
   });
 })().catch(err => {

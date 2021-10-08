@@ -8,13 +8,8 @@ import { createAbstractModel, AbstractModel } from 'passkit-generator';
 import { Logger } from '@navch/common';
 import { validate } from '@navch/codec';
 
-import {
-  PassModel,
-  PassModelCertificates,
-  PassModelIdentifiers,
-  isPassModelBundle,
-  getLocalModels,
-} from './ios.model';
+import { ApplePassConfig } from '../config';
+import { PassModel, isPassModelBundle, getLocalModels } from './ios.model';
 
 export type PassTemplate = t.TypeOf<typeof PassTemplate>;
 export const PassTemplate = t.type({
@@ -23,24 +18,13 @@ export const PassTemplate = t.type({
   passJson: PassModel,
 });
 
-export async function buildPassTemplates(logger: Logger): Promise<PassTemplate[]> {
-  /**
-   * The certificates used for signing the generated wallet pass, which can
-   * be either a path to the PEM-formatted certificate file, or the PEM text.
-   *
-   * We demonstrate the use case of configure via environment variables.
-   */
-  const certificates = validate(
-    {
-      wwdr: process.env.PASS_IOS_WWDR,
-      signerCert: process.env.PASS_IOS_SIGNER_CERT,
-      signerKey: {
-        keyFile: process.env.PASS_IOS_SIGNER_KEY,
-        passphrase: process.env.PASS_IOS_SIGNER_KEY_PASS,
-      },
-    },
-    PassModelCertificates
-  );
+export type BuildPassTemplateOptions = {
+  readonly logger: Logger;
+  readonly config: ApplePassConfig;
+};
+export async function buildPassTemplates(options: BuildPassTemplateOptions): Promise<PassTemplate[]> {
+  const { logger, config } = options;
+  const { certificates, teamIdentifier, passTypeIdentifier } = config;
 
   /**
    * The initial overrides for the PassModel so that we don't need to inject
@@ -49,13 +33,7 @@ export async function buildPassTemplates(logger: Logger): Promise<PassTemplate[]
    * These values can be overridden per-request via the `abstractMissingData`
    * argument of the `createPass` function.
    */
-  const overrides = validate(
-    {
-      teamIdentifier: process.env.PASS_IOS_TEAM_ID,
-      passTypeIdentifier: process.env.PASS_IOS_PASS_TYPE_ID,
-    },
-    PassModelIdentifiers
-  );
+  const overrides = { teamIdentifier, passTypeIdentifier };
 
   /**
    * Load the packaged PassModels if there is any.
@@ -66,11 +44,11 @@ export async function buildPassTemplates(logger: Logger): Promise<PassTemplate[]
     if (model['pass.json'] === undefined) {
       throw new Error('Pass bundle must contain "pass.json"');
     }
-    const passJson = validate(JSON.parse(model['pass.json'].toString()), PassModel);
     const abstractModel = isPassModelBundle(model)
       ? await createAbstractModel({ model, certificates, overrides })
       : await createAbstractModel({ model: model.modelDir, certificates, overrides });
 
+    const passJson = validate(JSON.parse(model['pass.json'].toString()), PassModel);
     if (!passJson.serialNumber) {
       const message = markdown`
         Missing the required "serialNumber" key in "pass.json" file for {{ template }}.

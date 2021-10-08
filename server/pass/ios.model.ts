@@ -68,20 +68,6 @@ export const PassModel = t.type({
   locations: t.union([t.array(PassModelLocation), t.undefined]),
 });
 
-export const PassModelIdentifiers = t.type({
-  teamIdentifier: t.string,
-  passTypeIdentifier: t.string,
-});
-
-export const PassModelCertificates = t.type({
-  wwdr: t.string,
-  signerCert: t.string,
-  signerKey: t.type({
-    keyFile: t.string,
-    passphrase: t.string,
-  }),
-});
-
 export type PassModelBundle = {
   'logo.png'?: Buffer;
   'logo@2x.png'?: Buffer;

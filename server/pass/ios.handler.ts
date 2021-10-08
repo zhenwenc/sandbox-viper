@@ -10,8 +10,13 @@ import { buildPassTemplates, PassTemplate } from './ios.template';
 import { buildPassTemplateCache } from './cache';
 import { decode } from './decoder';
 import { resolveTemplateValue } from '../utils';
+import { ApplePassConfig } from '../config';
 
-export const buildRouter = makeRouter(() => {
+export type HandlerContext = {
+  readonly config: ApplePassConfig;
+};
+
+export const buildRouter = makeRouter(({ config }: HandlerContext) => {
   let passTemplateCacheExpiry = -1;
 
   /**
@@ -21,7 +26,7 @@ export const buildRouter = makeRouter(() => {
   const passTemplateCache = buildPassTemplateCache<PassTemplate>();
   const refreshPassTemplateCache = async (logger: Logger, forceReload = false) => {
     if (forceReload || Date.now() > passTemplateCacheExpiry) {
-      const templates = await buildPassTemplates(logger);
+      const templates = await buildPassTemplates({ logger, config });
       await Promise.all(templates.map(item => passTemplateCache.setItem(item)));
       passTemplateCacheExpiry = Date.now() + 3600 * 1000;
     }
