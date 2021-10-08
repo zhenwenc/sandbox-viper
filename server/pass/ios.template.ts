@@ -8,7 +8,13 @@ import { createAbstractModel, AbstractModel } from 'passkit-generator';
 import { Logger } from '@navch/common';
 import { validate } from '@navch/codec';
 
-import { PassModel, PassModelCertificates, PassModelIdentifiers, getLocalModels } from './ios.model';
+import {
+  PassModel,
+  PassModelCertificates,
+  PassModelIdentifiers,
+  isPassModelBundle,
+  getLocalModels,
+} from './ios.model';
 
 export type PassTemplate = t.TypeOf<typeof PassTemplate>;
 export const PassTemplate = t.type({
@@ -61,7 +67,9 @@ export async function buildPassTemplates(logger: Logger): Promise<PassTemplate[]
       throw new Error('Pass bundle must contain "pass.json"');
     }
     const passJson = validate(JSON.parse(model['pass.json'].toString()), PassModel);
-    const abstractModel = await createAbstractModel({ model, certificates, overrides });
+    const abstractModel = isPassModelBundle(model)
+      ? await createAbstractModel({ model, certificates, overrides })
+      : await createAbstractModel({ model: model.modelDir, certificates, overrides });
 
     if (!passJson.serialNumber) {
       const message = markdown`

@@ -1,6 +1,6 @@
 {
   "formatVersion" : 1,
-  "serialNumber" : "nzcp",
+  "serialNumber" : "mattr-nzcp",
   "webServiceURL" : "https://mattrglobal.github.io/nzcp/qvnNK89kiJRoEindxA3U",
   "authenticationToken" : "vxwxd7J8AlNNFPS8k0a0FfUFtq0ewzFdc",
   "barcode" : {
@@ -8,29 +8,37 @@
     "messageEncoding" : "iso-8859-1",
     "message" : ""
   },
-  "organizationName" : "NZ COVID Passport",
-  "description" : "NZ COVID Passport",
-  "logoText" : "NZ COVID Passport",
-  "foregroundColor" : "rgb(0, 0, 0)",
-  "backgroundColor" : "rgb(255, 235, 153)",
-  "generic" : {
-    "primaryFields" : [
+  "organizationName" : "The New Zealand Ministry of Health",
+  "description" : "New Zealand COVID Pass",
+  "labelColor": "#333333",
+  "foregroundColor" : "#1A1A18",
+  "backgroundColor" : "#E6E5F0",
+  "storeCard" : {
+    "headerFields": [
       {
-        "key" : "lastName",
-        "label" : "SURNAME",
-        "value": "{{ data.lastName }}"
+        "key" : "header",
+        "label" : "NEW ZEALAND",
+        "value": "COVID Pass"
       }
     ],
+    "primaryFields" : [],
     "secondaryFields" : [
       {
-        "key" : "firstName",
-        "label" : "GIVEN NAME",
-        "value": "{{ data.firstName }}"
-      },
+        "key" : "name",
+        "label" : "NAME",
+        "value": "{{ data.firstName }} {{ data.lastName }}"
+      }
+    ],
+    "auxiliaryFields" : [
       {
         "key" : "dob",
         "label" : "DATE OF BIRTH",
         "value": "{{ data.dob }}"
+      },
+      {
+        "key" : "exp",
+        "label" : "DATE OF EXPIRY",
+        "value": "{{ data.expiration }}"
       }
     ],
     "backFields" : []

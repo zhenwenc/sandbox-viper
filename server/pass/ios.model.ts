@@ -87,34 +87,32 @@ export type PassModelBundle = {
   'logo@2x.png'?: Buffer;
   'icon.png'?: Buffer;
   'icon@2x.png'?: Buffer;
+  'strip.png'?: Buffer;
+  'strip@2x.png'?: Buffer;
   'thumbnail.png'?: Buffer;
   'thumbnail@2x.png'?: Buffer;
   'pass.json'?: Buffer;
   'it.lproj/pass.strings'?: Buffer;
 };
 
+export type PassModelFolder = {
+  'modelDir': string;
+  'pass.json': Buffer;
+};
+
+export type PassModelDefinition = PassModelFolder | PassModelBundle;
+export const isPassModelBundle = (def: PassModelDefinition): def is PassModelBundle => {
+  return !('modelDir' in def);
+};
+
 /**
  * Function that reads the Apple Wallet Pass template model from a folder.
  * This is the preferred approach when the application has filesystem access.
  */
-export async function parseModelDir(modelDir: string): Promise<PassModelBundle> {
+export async function parseModelDir(modelDir: string): Promise<PassModelDefinition> {
   try {
-    const readFile = (filePath: string) => {
-      if (fs.existsSync(filePath)) {
-        return fs.readFileSync(filePath);
-      }
-      return undefined;
-    };
-    return {
-      'logo.png': readFile(path.join(modelDir, 'logo.png')),
-      'logo@2x.png': readFile(path.join(modelDir, 'logo@2x.png')),
-      'icon.png': readFile(path.join(modelDir, 'icon.png')),
-      'icon@2x.png': readFile(path.join(modelDir, 'icon@2x.png')),
-      'thumbnail.png': readFile(path.join(modelDir, 'thumbnail.png')),
-      'thumbnail@2x.png': readFile(path.join(modelDir, 'thumbnail@2x.png')),
-      'pass.json': readFile(path.join(modelDir, 'pass.json')),
-      'it.lproj/pass.strings': readFile(path.join(modelDir, 'it.lproj/pass.strings')),
-    };
+    const passJson = fs.readFileSync(path.join(modelDir, 'pass.json'));
+    return { modelDir, 'pass.json': passJson };
   } catch (err) {
     err.message = `Failed to parse Apple Pass model at ${modelDir}: ${err.message}`;
     throw err;
@@ -128,7 +126,7 @@ export async function parseModelDir(modelDir: string): Promise<PassModelBundle> 
  *
  * FIXME: The callback hell style is really ugly, is there any better way?
  */
-export async function parseModelZip(modelZip: Buffer): Promise<PassModelBundle> {
+export async function parseModelZip(modelZip: Buffer): Promise<PassModelDefinition> {
   const validFileNames = [
     'logo.png',
     'logo@2x.png',
