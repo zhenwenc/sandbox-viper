@@ -5,14 +5,15 @@ import yauzl from 'yauzl';
 import { Logger, isNotNullish } from '@navch/common';
 
 export const PassModelBarcode = t.type({
-  message: t.string,
   format: t.union([
     t.literal('PKBarcodeFormatQR'),
     t.literal('PKBarcodeFormatPDF417'),
     t.literal('PKBarcodeFormatAztec'),
     t.literal('PKBarcodeFormatCode128'),
   ]),
+  message: t.string,
   messageEncoding: t.literal('iso-8859-1'),
+  altText: t.union([t.string, t.undefined]),
 });
 
 export const PassModelLocation = t.type({

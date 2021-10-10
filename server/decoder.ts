@@ -1,9 +1,10 @@
+import { format, parseISO } from 'date-fns';
 import { inflate } from 'pako';
 import { Logger, threadP } from '@navch/common';
 
 export type DecodeResult = {
-  subject: Record<string, unknown>;
-  payload: unknown; // decoded payload
+  payload: Record<string, unknown>;
+  rawData: unknown; // decoded payload
 };
 
 const patterns = {
@@ -24,7 +25,7 @@ export async function decode(input: string, logger: Logger): Promise<DecodeResul
       return await decoder(matches[1], logger);
     }
   }
-  return { subject: {}, payload: input };
+  return { payload: {}, rawData: input };
 }
 
 // Base45 > Zlib > COSE > CBOR > JSON
@@ -60,8 +61,8 @@ async function hcertDecode(input: string, logger: Logger) {
     async buffer => {
       const coseData = cbor.decode(buffer);
       const cborData = cbor.decode(coseData.value[2]);
-      const subject = Object.fromEntries(cborData.get(-260))[1];
-      return { subject, payload: Object.fromEntries(cborData) };
+      const payload = Object.fromEntries(cborData.get(-260))[1];
+      return { payload, rawData: Object.fromEntries(cborData) };
     }
   ).catch(err => {
     logger.error('Failed to decode HCERT input', { err });
@@ -76,6 +77,11 @@ async function nzcpDecode(input: string, logger: Logger) {
   logger.debug('Decoding NZCP payload', { input });
   const cbor = require('cbor');
   const base32 = require('hi-base32');
+
+  const formatDate = (unixTime: number | undefined) => {
+    if (unixTime === undefined) return undefined;
+    return format(unixTime * 1000, 'dd MMM yyyy').toUpperCase();
+  };
 
   return await threadP(
     input,
@@ -102,7 +108,14 @@ async function nzcpDecode(input: string, logger: Logger) {
       const cborData = cbor.decode(coseData.value[2]);
       // https://w3c.github.io/vc-data-model/
       const subject = cborData.get('vc')['credentialSubject'];
-      return { subject, payload: Object.fromEntries(cborData) };
+      const payload = {
+        ...subject,
+        iss: cborData.get(1),
+        exp: formatDate(cborData.get(4)), // Expiration Time
+        dob: formatDate(parseISO(subject.dob).getTime() / 1000),
+        name: [subject.givenName, subject.familyName].filter(Boolean).join(' '),
+      };
+      return { payload, rawData: Object.fromEntries(cborData) };
     }
   ).catch(err => {
     logger.error('Failed to decode NZCP input', { err });

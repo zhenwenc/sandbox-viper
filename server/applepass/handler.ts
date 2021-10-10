@@ -8,7 +8,7 @@ import { makeHandler, makeRouter } from '@navch/express';
 
 import { buildPassTemplates, PassTemplate } from './template';
 import { buildPassTemplateCache } from '../cache';
-import { decode } from '../decoder';
+import { decode, DecodeResult } from '../decoder';
 import { resolveTemplateValue } from '../utils';
 import { ApplePassConfig } from '../config';
 
@@ -93,7 +93,11 @@ export const buildRouter = makeRouter(({ config }: HandlerContext) => {
 
         // Attempt to obtain the Wallet Pass template payload by decoding the input
         // barcode when `payload` argument is undefined.
-        const passPayload = payload ? { subject: JSON.parse(payload) } : await decode(barcode, logger);
+        const passPayload: DecodeResult = payload
+          ? { payload: JSON.parse(payload), rawData: payload }
+          : await decode(barcode, logger);
+
+        const fieldValues = { data: passPayload.payload };
         logger.debug('Generate iOS Wallet Pass with decoded payload', passPayload);
 
         const pass = await createPass(passTemplate.abstractModel, undefined, {
@@ -110,12 +114,16 @@ export const buildRouter = makeRouter(({ config }: HandlerContext) => {
              * @see {@link https://developer.apple.com/documentation/walletpasses}
              */
             serialNumber: uuid(),
-            authenticationToken: uuid(),
           },
         });
 
         // Adding some settings to be written inside pass.json
-        pass.barcodes(barcode);
+        pass.barcodes({
+          message: barcode,
+          messageEncoding: passTemplate.passJson.barcode?.messageEncoding || 'iso-8859-1',
+          format: passTemplate.passJson.barcode?.format || 'PKBarcodeFormatQR',
+          altText: resolveTemplateValue(fieldValues, passTemplate.passJson.barcode?.altText || ''),
+        });
 
         // TODO Why the library's `FieldsArray#splice` function doesn't work?
         //      It will results in an invalid Pass bundle.
@@ -130,10 +138,9 @@ export const buildRouter = makeRouter(({ config }: HandlerContext) => {
         // NOTE Yet another pitfall, the "value" attribute must always be defined for each,
         // field in the template, otherwise it won't be picked up by the library.
         //
-        const fieldArrays = [pass.primaryFields, pass.secondaryFields, pass.auxiliaryFields];
+        const fieldArrays = [pass.primaryFields, pass.secondaryFields, pass.auxiliaryFields, pass.backFields];
         fieldArrays.forEach(fieldArray => {
           fieldArray.forEach(field => {
-            const fieldValues = { data: passPayload.subject };
             field.value = resolveTemplateValue(fieldValues, field.value) ?? field.value;
           });
         });

@@ -1,14 +1,13 @@
 {
   "formatVersion": 1,
   "serialNumber": "mattr-nzcp",
-  "webServiceURL": "https://mattrglobal.github.io/nzcp/qvnNK89kiJRoEindxA3U",
-  "authenticationToken": "vxwxd7J8AlNNFPS8k0a0FfUFtq0ewzFdc",
   "barcode": {
     "format": "PKBarcodeFormatQR",
     "messageEncoding": "iso-8859-1",
-    "message": ""
+    "message": "",
+    "altText": "Exp: {{ data.exp }}"
   },
-  "organizationName": "The New Zealand Ministry of Health",
+  "organizationName": "Ministry of Health Manatū Hauora",
   "description": "New Zealand COVID Pass",
   "labelColor": "#333333",
   "foregroundColor": "#1A1A18",
@@ -26,10 +25,25 @@
       {
         "key": "name",
         "label": "NAME",
-        "value": "{{ data.firstName }} {{ data.lastName }}"
+        "value": "{{ data.name }}"
+      },
+      {
+        "key": "dob",
+        "label": "DATE OF BIRTH",
+        "value": "{{ data.dob }}"
       }
     ],
-    "auxiliaryFields": [
+    "backFields": [
+      {
+        "key": "family_name",
+        "label": "FAMILY NAME",
+        "value": "{{ data.familyName }}"
+      },
+      {
+        "key": "given_name",
+        "label": "GIVEN NAME",
+        "value": "{{ data.givenName }}"
+      },
       {
         "key": "dob",
         "label": "DATE OF BIRTH",
@@ -38,9 +52,8 @@
       {
         "key": "exp",
         "label": "DATE OF EXPIRY",
-        "value": "{{ data.expiration }}"
+        "value": "{{ data.exp }}"
       }
-    ],
-    "backFields": []
+    ]
   }
 }
