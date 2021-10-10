@@ -1,76 +1,76 @@
 {
-  "formatVersion" : 1,
-  "serialNumber" : "dcc",
-  "webServiceURL" : "https://www.covidpasscertificate.com",
-  "authenticationToken" : "vxwxd7J8AlNNFPS8k0a0FfUFtq0ewzFdc",
-  "barcode" : {
-    "format" : "PKBarcodeFormatQR",
-    "messageEncoding" : "iso-8859-1",
-    "message" : ""
+  "formatVersion": 1,
+  "serialNumber": "dcc",
+  "webServiceURL": "https://www.covidpasscertificate.com",
+  "authenticationToken": "vxwxd7J8AlNNFPS8k0a0FfUFtq0ewzFdc",
+  "barcode": {
+    "format": "PKBarcodeFormatQR",
+    "messageEncoding": "iso-8859-1",
+    "message": ""
   },
-  "organizationName" : "COVID Passport",
-  "description" : "EU COVID Certificate",
-  "logoText" : "EU COVID Certificate",
-  "foregroundColor" : "rgb(0, 0, 0)",
-  "backgroundColor" : "rgb(91, 164, 91)",
-  "generic" : {
-    "primaryFields" : [
+  "organizationName": "COVID Passport",
+  "description": "EU COVID Certificate",
+  "logoText": "EU COVID Certificate",
+  "foregroundColor": "rgb(0, 0, 0)",
+  "backgroundColor": "rgb(91, 164, 91)",
+  "generic": {
+    "primaryFields": [
       {
-        "key" : "surname",
-        "label" : "SURNAME",
+        "key": "surname",
+        "label": "SURNAME",
         "value": "{{ data.nam.fn }}"
       }
     ],
-    "secondaryFields" : [
+    "secondaryFields": [
       {
-        "key" : "given_name",
-        "label" : "GIVEN NAME",
+        "key": "given_name",
+        "label": "GIVEN NAME",
         "value": "{{ data.nam.gn }}"
       },
       {
-        "key" : "dob",
-        "label" : "DATE OF BIRTH",
+        "key": "dob",
+        "label": "DATE OF BIRTH",
         "value": "{{ data.dob }}"
       }
     ],
-    "backFields" : [
+    "backFields": [
       {
-        "numberStyle" : "PKNumberStyleSpellOut",
-        "label" : "spelled out",
-        "key" : "numberStyle",
-        "value" : 200
+        "numberStyle": "PKNumberStyleSpellOut",
+        "label": "spelled out",
+        "key": "numberStyle",
+        "value": 200
       },
       {
-        "label" : "in Reals",
-        "key" : "currency",
-        "value" : 200,
-        "currencyCode" : "BRL"
+        "label": "in Reals",
+        "key": "currency",
+        "value": 200,
+        "currencyCode": "BRL"
       },
       {
-        "dateStyle" : "PKDateStyleFull",
-        "label" : "full date",
-        "key" : "dateFull",
-        "value" : "1980-05-07T10:00-05:00"
+        "dateStyle": "PKDateStyleFull",
+        "label": "full date",
+        "key": "dateFull",
+        "value": "1980-05-07T10:00-05:00"
       },
       {
-        "label" : "full time",
-        "key" : "timeFull",
-        "value" : "1980-05-07T10:00-05:00",
-        "timeStyle" : "PKDateStyleFull"
+        "label": "full time",
+        "key": "timeFull",
+        "value": "1980-05-07T10:00-05:00",
+        "timeStyle": "PKDateStyleFull"
       },
       {
-        "dateStyle" : "PKDateStyleShort",
-        "label" : "short date and time",
-        "key" : "dateTime",
-        "value" : "1980-05-07T10:00-05:00",
-        "timeStyle" : "PKDateStyleShort"
+        "dateStyle": "PKDateStyleShort",
+        "label": "short date and time",
+        "key": "dateTime",
+        "value": "1980-05-07T10:00-05:00",
+        "timeStyle": "PKDateStyleShort"
       },
       {
-        "dateStyle" : "PKDateStyleShort",
-        "label" : "relative date",
-        "key" : "relStyle",
-        "value" : "2013-04-24T10:00-05:00",
-        "isRelative" : true
+        "dateStyle": "PKDateStyleShort",
+        "label": "relative date",
+        "key": "relStyle",
+        "value": "2013-04-24T10:00-05:00",
+        "isRelative": true
       }
     ]
   }
