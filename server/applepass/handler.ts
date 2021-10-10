@@ -6,9 +6,9 @@ import { createPass } from 'passkit-generator';
 import { Logger, NotFoundError } from '@navch/common';
 import { makeHandler, makeRouter } from '@navch/express';
 
-import { buildPassTemplates, PassTemplate } from './ios.template';
-import { buildPassTemplateCache } from './cache';
-import { decode } from './decoder';
+import { buildPassTemplates, PassTemplate } from './template';
+import { buildPassTemplateCache } from '../cache';
+import { decode } from '../decoder';
 import { resolveTemplateValue } from '../utils';
 import { ApplePassConfig } from '../config';
 

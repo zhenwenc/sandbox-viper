@@ -8,8 +8,8 @@ import { makeStyles } from '@navch-ui/styles';
 import { useLatestCallback, useEventCallback } from '@navch-ui/hooks';
 import { Box, Button, Text, Input } from '@navch-ui/core';
 
-import { TemplatePicker, TemplateInfo } from '@modules/pass/TemplatePicker';
-import { BarcodeReader } from '@modules/pass/BarcodeReader';
+import { BarcodeReader } from '@components/BarcodeReader';
+import { TemplatePicker, TemplateInfo } from '@components/TemplatePicker';
 
 export default function Index() {
   const router = useRouter();

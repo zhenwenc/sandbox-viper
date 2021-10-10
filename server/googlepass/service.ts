@@ -4,7 +4,7 @@ import { GoogleAuth } from 'google-auth-library';
 import { Logger, NotFoundError, recoverP } from '@navch/common';
 import { validate } from '@navch/codec';
 
-import { WalletObject, WalletClass, WalletClassType, WalletObjectType } from './android.model';
+import { WalletObject, WalletClass, WalletClassType, WalletObjectType } from './model';
 
 export type ListWalletClassRequest = {
   readonly logger: Logger;

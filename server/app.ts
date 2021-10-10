@@ -8,9 +8,9 @@ import { compose, trim } from 'ramda';
 import { Logger } from '@navch/common';
 import { setRequestContext } from '@navch/express';
 
-import { AppConfig, ApplePassConfig, GooglePayPassConfig } from './server/config';
-import * as iosPassHandlers from './server/pass/ios.handler';
-import * as androidPassHandlers from './server/pass/android.handler';
+import { AppConfig, ApplePassConfig, GooglePayPassConfig } from './config';
+import * as applePassHandlers from './applepass/handler';
+import * as googlePassHandlers from './googlepass/handler';
 
 // Load environment variables from .env* files. It will not modify any
 // environment variables that have already been set.
@@ -50,7 +50,7 @@ dotenvFiles.forEach(dotenvFile => {
   // enforce you to provide all environment variables to start with.
 
   try {
-    const router = iosPassHandlers.buildRouter({
+    const router = applePassHandlers.buildRouter({
       config: new ApplePassConfig(),
     });
     app.use('/viper/pass/ios', router);
@@ -59,7 +59,7 @@ dotenvFiles.forEach(dotenvFile => {
   }
 
   try {
-    const router = androidPassHandlers.buildRouter({
+    const router = googlePassHandlers.buildRouter({
       config: new GooglePayPassConfig(),
     });
     app.use('/viper/pass/android', router);

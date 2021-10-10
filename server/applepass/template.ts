@@ -9,7 +9,7 @@ import { Logger } from '@navch/common';
 import { validate } from '@navch/codec';
 
 import { ApplePassConfig } from '../config';
-import { PassModel, isPassModelBundle, getLocalModels } from './ios.model';
+import { PassModel, isPassModelBundle, getLocalModels } from './model';
 
 export type PassTemplate = t.TypeOf<typeof PassTemplate>;
 export const PassTemplate = t.type({

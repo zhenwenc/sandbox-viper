@@ -5,7 +5,7 @@ import path from 'path';
 import { Logger, isNotNullish } from '@navch/common';
 import { validate } from '@navch/codec';
 
-import { WalletClassType, WalletClass, WalletObjectType, WalletObject } from './android.model';
+import { WalletClassType, WalletClass, WalletObjectType, WalletObject } from './model';
 
 // https://developers.google.com/pay/passes/rest/v1/offerclass
 export type PassTemplate = t.TypeOf<typeof PassTemplate>;

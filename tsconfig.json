@@ -14,7 +14,6 @@
     "outDir": "build",
     "paths": {
       "@hooks/*": ["hooks/*"],
-      "@modules/*": ["modules/*"],
       "@components/*": ["components/*"]
     },
     "forceConsistentCasingInFileNames": true

@@ -9,11 +9,11 @@ import { GoogleAuth } from 'google-auth-library';
 import { Logger, NotFoundError } from '@navch/common';
 import { makeHandler, makeRouter } from '@navch/express';
 
-import * as service from './android.service';
-import { WalletClass, WalletObject } from './android.model';
-import { buildPassTemplates, PassTemplate } from './android.template';
-import { buildPassTemplateCache } from './cache';
-import { decode } from './decoder';
+import * as service from './service';
+import { WalletClass, WalletObject } from './model';
+import { buildPassTemplates, PassTemplate } from './template';
+import { buildPassTemplateCache } from '../cache';
+import { decode } from '../decoder';
 import { resolveTemplateValue } from '../utils';
 import { GooglePayPassConfig } from '../config';
 
