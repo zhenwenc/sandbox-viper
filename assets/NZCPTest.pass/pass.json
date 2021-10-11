@@ -1,0 +1,70 @@
+{
+  "formatVersion": 1,
+  "serialNumber": "nzcp",
+  "barcode": {
+    "format": "PKBarcodeFormatQR",
+    "messageEncoding": "iso-8859-1",
+    "message": ""
+  },
+  "organizationName": "Ministry of Health Manatū Hauora",
+  "description": "NZ COVID Certificate",
+  "labelColor": "#333333",
+  "foregroundColor": "#1A1A18",
+  "backgroundColor": "#E6E5F0",
+  "eventTicket": {
+    "headerFields": [
+      {
+        "key": "header",
+        "label": "NEW ZEALAND",
+        "value": "COVID Pass"
+      }
+    ],
+    "primaryFields": [],
+    "secondaryFields": [
+      {
+        "key": "name",
+        "label": "NAME",
+        "value": "{{ data.name }}"
+      },
+      {
+        "key": "dob",
+        "label": "DATE OF BIRTH",
+        "value": "{{ data.dob }}"
+      }
+    ],
+    "auxiliaryFields": [
+      {
+        "key": "exp",
+        "label": "DATE OF EXPIRY",
+        "value": "{{ data.exp }}"
+      }
+    ],
+    "backFields": [
+      {
+        "key": "family_name",
+        "label": "FAMILY NAME",
+        "value": "{{ data.familyName }}"
+      },
+      {
+        "key": "given_name",
+        "label": "GIVEN NAME",
+        "value": "{{ data.givenName }}"
+      },
+      {
+        "key": "dob",
+        "label": "DATE OF BIRTH",
+        "value": "{{ data.dob }}"
+      },
+      {
+        "key": "iat",
+        "label": "DATE OF ISSURANCE",
+        "value": "{{ data.iat }}"
+      },
+      {
+        "key": "exp",
+        "label": "DATE OF EXPIRY",
+        "value": "{{ data.exp }}"
+      }
+    ]
+  }
+}

@@ -111,6 +111,7 @@ async function nzcpDecode(input: string, logger: Logger) {
       const payload = {
         ...subject,
         iss: cborData.get(1),
+        iat: formatDate(cborData.get(5)), // Issued At
         exp: formatDate(cborData.get(4)), // Expiration Time
         dob: formatDate(parseISO(subject.dob).getTime() / 1000),
         name: [subject.givenName, subject.familyName].filter(Boolean).join(' '),
