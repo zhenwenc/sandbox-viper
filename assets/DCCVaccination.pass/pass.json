@@ -6,26 +6,36 @@
   "barcode": {
     "format": "PKBarcodeFormatQR",
     "messageEncoding": "iso-8859-1",
-    "message": ""
+    "message": "",
+    "altText": "{{ data.v.0.ci }}"
   },
   "organizationName": "COVID Passport",
   "description": "EU COVID Certificate",
-  "logoText": "EU COVID Certificate",
-  "foregroundColor": "rgb(0, 0, 0)",
-  "backgroundColor": "rgb(91, 164, 91)",
-  "generic": {
-    "primaryFields": [
+  "backgroundColor": "rgb(255,255,255)",
+  "foregroundColor": "rgb(0,0,0)",
+  "labelColor": "rgb(17,50,147)",
+  "suppressStripShine": true,
+  "eventTicket": {
+    "headerFields": [
       {
-        "key": "surname",
-        "label": "SURNAME",
-        "value": "{{ data.nam.fn }}"
+        "key": "state",
+        "label": "STATE",
+        "value": "NZ",
+        "textAlignment": "PKTextAlignmentCenter"
+      },
+      {
+        "key": "title",
+        "label": "C-19 PASS",
+        "value": "VACCINATED",
+        "textAlignment": "PKTextAlignmentRight"
       }
     ],
+    "primaryFields": [],
     "secondaryFields": [
       {
-        "key": "given_name",
-        "label": "GIVEN NAME",
-        "value": "{{ data.nam.gn }}"
+        "key": "full_name",
+        "label": "NAME",
+        "value": "{{ data.nam.gn }} {{ data.nam.fn }}"
       },
       {
         "key": "dob",
@@ -33,44 +43,38 @@
         "value": "{{ data.dob }}"
       }
     ],
+    "auxiliaryFields": [
+      {
+        "key": "dov",
+        "label": "DATE OF VACCINATION",
+        "value": "{{ data.v.0.dt }}"
+      },
+      {
+        "key": "doses",
+        "label": "DOSES",
+        "value": "{{ data.v.0.dn }}/{{ data.v.0.sd }}"
+      },
+      {
+        "key": "certificate_issuer",
+        "label": "ISSUER",
+        "value": "{{ data.v.0.is }}"
+      }
+    ],
     "backFields": [
       {
-        "numberStyle": "PKNumberStyleSpellOut",
-        "label": "spelled out",
-        "key": "numberStyle",
-        "value": 200
+        "key": "family_name",
+        "label": "Family name",
+        "value": "{{ data.nam.fn }}"
       },
       {
-        "label": "in Reals",
-        "key": "currency",
-        "value": 200,
-        "currencyCode": "BRL"
+        "key": "given_name",
+        "label": "Given name",
+        "value": "{{ data.nam.gn }}"
       },
       {
-        "dateStyle": "PKDateStyleFull",
-        "label": "full date",
-        "key": "dateFull",
-        "value": "1980-05-07T10:00-05:00"
-      },
-      {
-        "label": "full time",
-        "key": "timeFull",
-        "value": "1980-05-07T10:00-05:00",
-        "timeStyle": "PKDateStyleFull"
-      },
-      {
-        "dateStyle": "PKDateStyleShort",
-        "label": "short date and time",
-        "key": "dateTime",
-        "value": "1980-05-07T10:00-05:00",
-        "timeStyle": "PKDateStyleShort"
-      },
-      {
-        "dateStyle": "PKDateStyleShort",
-        "label": "relative date",
-        "key": "relStyle",
-        "value": "2013-04-24T10:00-05:00",
-        "isRelative": true
+        "key": "Date of birth",
+        "label": "Date of birth",
+        "value": "{{ data.dob }}"
       }
     ]
   }
