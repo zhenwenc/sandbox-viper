@@ -11,16 +11,27 @@ import { Box, Button, Text, Input } from '@navch-ui/core';
 import { BarcodeReader } from '@components/BarcodeReader';
 import { TemplatePicker, TemplateInfo } from '@components/TemplatePicker';
 
+const SampleBarcodes = [
+  {
+    name: 'EU Digital COVID Certificate (HCERT)',
+    value:
+      'HC1:6BFOXN%TSMAHN-HVVOJ5W5.6TXB*8SAG4LR5OGIJ5S91J:X90B6 G8KQCX3CCV4*XUA2PWKP/HLIJLKNF8JF7LPMIH-O92UQHJAZ$U5XPXZQ H98PG..V.UITZUQ0OTZUYZQAJ9 0OO2WPRAAUICO1CV59UEEIGN770 LHZA0D9E2LBHHGKLO-K%FGLIA5D8MJKQJK JMDJL9GG.IA.C8KRDL4O54O4IGUJKJGI.IAHLCV5GJM7J8M HG4HGBIK6IA*$30JAXD16IASD9M82*88*DOXCRFE4/972JTN$K1RS$15SBCL20*W0VTQ8OI+*P2%KYZP-TG.MKLWLVRMES9PI02O5:12AL8TH1LOEDK2P:6UJ2*1B0J0Z1BXI0JOC7:4/K4/I24-29Q8Z8G1Z12$1XO9-*AC9R-38GNSM-Q:ASZ5RT7G/PN7ZIGVA0JNO$RZPNSVNUOSUQDMEU4.B50MV:5Z650QRP3U*.CYSRU:NUM6+KB6GT/JRF5I7A0Z.N60',
+  },
+  {
+    name: 'NZ COVID Pass (NZCP)',
+    value:
+      'NZCP:/1/2KCEVIQBEYCEK23FPEWTDICZAEGKKALLMRUWIOTXMVRDU6DYPACRUYLEUIMAIGTCKSQSQYTWMOSGQQDDN5XHIZLYOSBHQJTIOR2HA4Z2F4XXO53XFZ3TGLTPOJTS6MRQGE4C6Y3SMVSGK3TUNFQWY4ZPOYYXQJ3IOR2HA4Z2F4XWQZLBNR2GQLTHN53HILTOPIXWG4TFMRSW45DJMFWHGL3DOBXHUZ3WMVZHG2LPNZSTCLRQFYYGI5DZOBSYE5CWMVZGSZTJMFRGYZKDOJSWIZLOORUWC3DPKB2WE3DJMNBW65TJMRIGC43TOFRXEZLEMVXHI2LBNRJXKYTKMVRXJI3JM5UXMZLOJZQW2ZLGJBQXI5DJMVVGMYLNNFWHSTTBNVSWOR3JNRRGK4TUMNSG6YTKGE4TQOBNGAYS2MZRA7MEAUETDMAWCAZEJ4A2K6SOESOQW6VP3BAFQQFJWMPDRUDOUTHNM43JEKGTAKZX5XOCYOQFTEMEFD2LXSRG6XGAG2X2UO6KNK5JKPCSCIPWUJXIQ6YAOHYU4L7XU6BCS4QOTWB3OUEFQ',
+  },
+];
+
 export default function Index() {
   const router = useRouter();
   const { styles } = useStyles();
-  const [barcode, setBarcode] = useState<string>(
-    'NZCP:/1/2KCEVIQBEYCEK23FPEWTDICZAEGKKALLMRUWIOTXMVRDU6DYPACRUYLDTBOQIGTCKOLW2YTWMOSGQQDDN5XHIZLYOSBHQJTIOR2HA4Z2F4XXO53XFZ3TGLTPOJTS6MRQGE4C6Y3SMVSGK3TUNFQWY4ZPOYYXQJ3IOR2HA4Z2F4XWQZLBNR2GQLTHN53HILTOPIXWG4TFMRSW45DJMFWHGL3DOBXHUZ3WMVZHG2LPNZSTCLRQFYYGI5DZOBSYE5CWMVZGSZTJMFRGYZKDOJSWIZLOORUWC3DPKB2WE3DJMNBW65TJMRIGC43TOFRXEZLEMVXHI2LBNRJXKYTKMVRXJI3JM5UXMZLOJZQW2ZLGJBQXI5DJMVVGMYLNNFWHSTTBNVSWOR3JNRRGK4TUMNSG6YTKGE4TQOBNGAYS2MZRA7MEAUCWJFQ542IYJCNYAHHKJ2PSSBAK3BAFQQHEAD5JWPRPJICOESHPHYDTQCFYVSNTGVSKCKVHWDORQXUTBORYAC5X4ZYLIACNFG4AF7DZLFBVZELFYG3SVOLQFWTVD3KDOQBMA4SCG'
-  );
+  const [barcode, setBarcode] = useState<string>();
   const [showBarcodeReader, setBarcodeReader] = useState(false);
 
   const handleSelectAppleTemplate = useLatestCallback((templateId: string) => {
-    router.replace({ pathname: '/pass/ios', query: { templateId, barcode } });
+    router.replace({ pathname: '/pass/ios', query: { templateId, barcode, forceReload: true } });
   });
 
   const handleSelectGoogleTemplate = useLatestCallback(async (templateId: string) => {
@@ -30,6 +41,11 @@ export default function Index() {
   const handleBarcodeChange = useLatestCallback((input: string) => {
     setBarcode(input);
     setBarcodeReader(false);
+  });
+
+  const handleSampleBarcodeClick = useLatestCallback(() => {
+    const index = SampleBarcodes.findIndex(x => x.value === barcode);
+    handleBarcodeChange(SampleBarcodes[(index + 1) % SampleBarcodes.length].value);
   });
 
   const [applePassTemplates, fetchApplePassTemplates] = useAsyncFn(async () => {
@@ -88,6 +104,7 @@ export default function Index() {
             })}
           />
           <Box grid mt={3} justify="end" classes={styles.cardActions}>
+            <Button onClick={handleSampleBarcodeClick}>{'Next'}</Button>
             <Button onClick={() => setBarcodeReader(true)}>{'Scan'}</Button>
             <Button onClick={() => setBarcode('')}>{'Clear'}</Button>
           </Box>

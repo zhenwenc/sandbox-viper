@@ -25,29 +25,29 @@
       {
         "key": "name",
         "label": "NAME",
-        "value": "{{ data.name }}"
+        "value": "{{ data.ext.name }}"
       },
       {
         "key": "dob",
         "label": "DATE OF BIRTH",
-        "value": "{{ data.dob }}"
+        "value": "{{ data.ext.dob }}"
       }
     ],
     "backFields": [
       {
         "key": "family_name",
         "label": "FAMILY NAME",
-        "value": "{{ data.familyName }}"
+        "value": "{{ data.vc.credentialSubject.familyName }}"
       },
       {
         "key": "given_name",
         "label": "GIVEN NAME",
-        "value": "{{ data.givenName }}"
+        "value": "{{ data.vc.credentialSubject.givenName }}"
       },
       {
         "key": "dob",
         "label": "DATE OF BIRTH",
-        "value": "{{ data.dob }}"
+        "value": "{{ data.ext.dob }}"
       },
       {
         "key": "exp",

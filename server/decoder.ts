@@ -109,12 +109,14 @@ async function nzcpDecode(input: string, logger: Logger) {
       // https://w3c.github.io/vc-data-model/
       const subject = cborData.get('vc')['credentialSubject'];
       const payload = {
-        ...subject,
         iss: cborData.get(1),
         iat: formatDate(cborData.get(5)), // Issued At
         exp: formatDate(cborData.get(4)), // Expiration Time
-        dob: formatDate(parseISO(subject.dob).getTime() / 1000),
-        name: [subject.givenName, subject.familyName].filter(Boolean).join(' '),
+        ext: {
+          dob: formatDate(parseISO(subject.dob).getTime() / 1000),
+          name: [subject.givenName, subject.familyName].filter(Boolean).join(' '),
+        },
+        vc: cborData.get('vc'),
       };
       return { payload, rawData: Object.fromEntries(cborData) };
     }
