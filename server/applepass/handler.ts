@@ -118,12 +118,20 @@ export const buildRouter = makeRouter(({ config }: HandlerContext) => {
         });
 
         // Adding some settings to be written inside pass.json
-        pass.barcodes({
-          message: barcode,
-          messageEncoding: passTemplate.passJson.barcode?.messageEncoding || 'iso-8859-1',
-          format: passTemplate.passJson.barcode?.format || 'PKBarcodeFormatQR',
-          altText: resolveTemplateValue(fieldValues, passTemplate.passJson.barcode?.altText || ''),
-        });
+        if (passTemplate.passJson.barcode?.altText) {
+          pass.barcodes({
+            format: passTemplate.passJson.barcode?.format || 'PKBarcodeFormatQR',
+            messageEncoding: passTemplate.passJson.barcode?.messageEncoding || 'iso-8859-1',
+            message: barcode,
+            altText: resolveTemplateValue(fieldValues, passTemplate.passJson.barcode.altText),
+          });
+        } else {
+          pass.barcodes({
+            format: passTemplate.passJson.barcode?.format || 'PKBarcodeFormatQR',
+            messageEncoding: passTemplate.passJson.barcode?.messageEncoding || 'iso-8859-1',
+            message: barcode,
+          });
+        }
 
         // TODO Why the library's `FieldsArray#splice` function doesn't work?
         //      It will results in an invalid Pass bundle.
