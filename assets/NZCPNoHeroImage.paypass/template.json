@@ -1,0 +1,27 @@
+{
+  "templateId": "nzcp-no-hero",
+  "description": "COVID Card No Hero Image",
+  "objectType": "covidCardObject",
+  "objectTemplate": {
+    "id": "{{ meta.id }}",
+    "issuerId": "{{ meta.issuerId }}",
+    "title": "COVID-19 Pass",
+    "cardColorHex": "#E6E5F0",
+    "expiration": "{{ data.exp }}",
+    "logo": {
+      "sourceUri": {
+        "description": "Ministry of Health Manatū Hauora",
+        "uri": "https://www.datocms-assets.com/38428/1634013837-moh-840-full.png"
+      }
+    },
+    "barcode": {
+      "type": "qrCode",
+      "value": "{{ meta.barcode }}",
+      "alternateText": "{{ data.jti }}"
+    },
+    "patientDetails": {
+      "dateOfBirth": "{{ data.ext.dob }}",
+      "patientName": "{{ data.ext.name }}"
+    }
+  }
+}
