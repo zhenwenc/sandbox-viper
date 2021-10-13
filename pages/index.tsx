@@ -35,7 +35,7 @@ export default function Index() {
   });
 
   const handleSelectGoogleTemplate = useLatestCallback(async (templateId: string) => {
-    router.replace({ pathname: '/pass/android', query: { templateId, barcode } });
+    router.replace({ pathname: '/pass/android', query: { templateId, barcode, forceReload: true } });
   });
 
   const handleBarcodeChange = useLatestCallback((input: string) => {

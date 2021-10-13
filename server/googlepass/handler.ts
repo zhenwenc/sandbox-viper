@@ -109,7 +109,9 @@ export const buildRouter = makeRouter(({ config }: HandlerContext) => {
         // Attempt to obtain the PayPass template payload by decoding the input
         // barcode when `payload` argument is undefined.
         //
-        const passPayload = payload ? { subject: JSON.parse(payload) } : await decode(barcode, logger);
+        const passPayload = payload
+          ? { payload: JSON.parse(payload), rawData: payload }
+          : await decode(barcode, logger);
         logger.debug('Generate PayPass with decoded payload', passPayload);
 
         // Construct the PayPass class with the template if provided
@@ -117,7 +119,7 @@ export const buildRouter = makeRouter(({ config }: HandlerContext) => {
         const classRecord: WalletClass = {
           ...classTemplate,
           id: `${issuerId}.${templateId}`,
-          reviewStatus: 'underReview',
+          reviewStatus: 'approved', // 'underReview',
         };
 
         // Construct the PayPass object with the decoded payload by substituting field
@@ -130,7 +132,7 @@ export const buildRouter = makeRouter(({ config }: HandlerContext) => {
             barcode,
             issuerId,
           },
-          data: passPayload.subject,
+          data: passPayload.payload,
         };
         const objectRecord: WalletObject = cloneDeepWith(cloneDeep(objectTemplate), key => {
           if (typeof key !== 'string') return undefined;
@@ -172,7 +174,6 @@ export const buildRouter = makeRouter(({ config }: HandlerContext) => {
                 [pluralize(objectType)]: [objectRecord],
                 ...(classType && { [pluralize(classType)]: [classRecord] }),
               },
-              origins: ['http://localhost:8080'],
             });
           }
         });
