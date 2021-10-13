@@ -5,7 +5,7 @@
   "objectTemplate": {
     "id": "{{ meta.id }}",
     "issuerId": "{{ meta.issuerId }}",
-    "title": "New Zealand COVID Pass",
+    "title": "NZ COVID Pass",
     "cardColorHex": "#E6E5F0",
     "expiration": "{{ data.exp }}",
     "logo": {
