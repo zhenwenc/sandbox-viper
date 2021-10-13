@@ -1,5 +1,6 @@
 import { format, parseISO } from 'date-fns';
 import { inflate } from 'pako';
+import { stringify } from 'uuid';
 import { Logger, threadP } from '@navch/common';
 
 export type DecodeResult = {
@@ -80,7 +81,7 @@ async function nzcpDecode(input: string, logger: Logger) {
 
   const formatDate = (unixTime: number | undefined) => {
     if (unixTime === undefined) return undefined;
-    return format(unixTime * 1000, 'dd MMM yyyy').toUpperCase();
+    return format(unixTime * 1000, 'yyyy-MM-dd');
   };
 
   return await threadP(
@@ -110,6 +111,8 @@ async function nzcpDecode(input: string, logger: Logger) {
       const subject = cborData.get('vc')['credentialSubject'];
       const payload = {
         iss: cborData.get(1),
+        cti: stringify(cborData.get(7)), // CWT ID
+        jti: 'urn:uuid:' + stringify(cborData.get(7)), // JTI ID
         iat: formatDate(cborData.get(5)), // Issued At
         exp: formatDate(cborData.get(4)), // Expiration Time
         ext: {

@@ -36,11 +36,11 @@
   },
   "objectType": "loyaltyObject",
   "objectTemplate": {
-    "id": "{{ pass.id }}",
-    "classId": "{{ pass.classId }}",
+    "id": "{{ meta.id }}",
+    "classId": "{{ meta.classId }}",
     "barcode": {
       "type": "qrCode",
-      "value": "{{ pass.barcode }}",
+      "value": "{{ meta.barcode }}",
       "alternateText": "Loyalty Point Redeem Code"
     },
     "accountId": "{{ data.accountId }}",

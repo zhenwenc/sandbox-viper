@@ -126,7 +126,7 @@ export const buildRouter = makeRouter(({ config }: HandlerContext) => {
         // values in the generated pass with the input data.
         //
         const objectFields = {
-          pass: {
+          meta: {
             id: `${issuerId}.${uuid()}`,
             classId: classRecord.id,
             barcode,
@@ -193,8 +193,8 @@ export const buildRouter = makeRouter(({ config }: HandlerContext) => {
       route: '/templates',
       method: 'GET',
       description: markdown`
-        List the available Google PayPass templates in this application. These
-        are predefined PayPass class objects.
+List the available Google PayPass templates in this application. These
+are predefined PayPass class objects.
       `,
       handle: async (_1, _2, { res, logger }) => {
         logger.debug('Return predefined Google PayPass templates');

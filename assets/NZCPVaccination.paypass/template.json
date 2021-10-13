@@ -3,11 +3,11 @@
   "description": "COVID Vaccination Card",
   "objectType": "covidCardObject",
   "objectTemplate": {
-    "id": "{{ pass.id }}",
-    "issuerId": "{{ pass.issuerId }}",
+    "id": "{{ meta.id }}",
+    "issuerId": "{{ meta.issuerId }}",
     "title": "COVID-19 Pass",
-    "cardColorHex": "#22ff33",
-    "expiration": "2021-12-30",
+    "cardColorHex": "#E6E5F0",
+    "expiration": "{{ data.exp }}",
     "logo": {
       "sourceUri": {
         "description": "Ministry of Health Manatū Hauora",
@@ -16,12 +16,12 @@
     },
     "barcode": {
       "type": "qrCode",
-      "value": "{{ pass.barcode }}",
-      "alternateText": "NZCP Credential"
+      "value": "{{ meta.barcode }}",
+      "alternateText": "{{ data.jti }}"
     },
     "patientDetails": {
-      "dateOfBirth": "1981-05-19",
-      "patientName": "Alice Smith"
+      "dateOfBirth": "{{ data.ext.dob }}",
+      "patientName": "{{ data.ext.name }}"
     }
   }
 }
