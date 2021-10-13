@@ -39,7 +39,13 @@ const useStyles = makeStyles(theme => ({
   container: {
     gap: theme.spacing(2),
     gridColumnStart: 1,
-    gridTemplateColumns: 'repeat(2, 50%)',
+
+    [theme.breakpoint.mediumAndAbove]: {
+      gridTemplateColumns: 'repeat(2, 50%)',
+    },
+    [theme.breakpoint.medium]: {
+      gridTemplateColumns: 'repeat(1, 100%)',
+    },
   },
   item: {
     borderRadius: theme.border.radius,
