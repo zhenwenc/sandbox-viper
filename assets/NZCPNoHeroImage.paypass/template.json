@@ -8,6 +8,7 @@
     "title": "NZ COVID Pass",
     "cardColorHex": "#E6E5F0",
     "expiration": "{{ data.exp }}",
+    "validFrom": "2021-10-01",
     "logo": {
       "sourceUri": {
         "description": "Ministry of Health Manatū Hauora",
