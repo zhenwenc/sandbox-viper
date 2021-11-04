@@ -31,11 +31,11 @@ export default function Index() {
   const [showBarcodeReader, setBarcodeReader] = useState(false);
 
   const handleSelectAppleTemplate = useLatestCallback((templateId: string) => {
-    router.replace({ pathname: '/pass/ios', query: { templateId, barcode, forceReload: true } });
+    router.replace({ pathname: '/api/pass/ios', query: { templateId, barcode, forceReload: true } });
   });
 
   const handleSelectGoogleTemplate = useLatestCallback(async (templateId: string) => {
-    router.replace({ pathname: '/pass/android', query: { templateId, barcode, forceReload: true } });
+    router.replace({ pathname: '/api/pass/android', query: { templateId, barcode, forceReload: true } });
   });
 
   const handleBarcodeChange = useLatestCallback((input: string) => {
@@ -49,7 +49,7 @@ export default function Index() {
   });
 
   const [applePassTemplates, fetchApplePassTemplates] = useAsyncFn(async () => {
-    const resp = await fetch('/viper/pass/ios/templates');
+    const resp = await fetch('/viper/api/pass/ios/templates');
     if (!resp.ok) {
       throw new Error('Failed to fetch Apple Pass templates');
     }
@@ -58,7 +58,7 @@ export default function Index() {
   useMount(fetchApplePassTemplates); // Fetch on client-side only
 
   const [androidPassTemplates, fetchAndroidPassTemplates] = useAsyncFn(async () => {
-    const resp = await fetch('/viper/pass/android/templates');
+    const resp = await fetch('/viper/api/pass/android/templates');
     if (!resp.ok) {
       throw new Error('Failed to fetch Android Pass templates');
     }

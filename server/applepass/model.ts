@@ -191,11 +191,10 @@ export async function getLocalModels(rootDir: string, logger: Logger) {
       return parseModelDir(path.join(rootDir, dirent.name));
     }
     if (dirent.name.endsWith('.pass.zip') && dirent.isFile()) {
-      logger.debug(`Loading Apple Pass template bundle: ${dirent.name}`);
+      logger.debug(`Loading Apple Pass template: ${dirent.name}`);
       return parseModelZip(fs.readFileSync(path.join(rootDir, dirent.name)));
     }
     return Promise.resolve(undefined);
   });
-
   return (await Promise.all(promises)).filter(isNotNullish);
 }

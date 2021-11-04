@@ -7,7 +7,7 @@ import { oneLineTrim as markdown } from 'common-tags';
 import { GoogleAuth } from 'google-auth-library';
 
 import { Logger, NotFoundError } from '@navch/common';
-import { makeHandler, makeRouter } from '@navch/express';
+import { makeHandler, makeHandlers } from '@navch/express';
 
 import * as service from './service';
 import { WalletClass, WalletObject } from './model';
@@ -21,7 +21,7 @@ export type HandlerContext = {
   readonly config: GooglePayPassConfig;
 };
 
-export const buildRouter = makeRouter(({ config }: HandlerContext) => {
+export default makeHandlers(({ config }: HandlerContext) => {
   const { issuerId, credentials } = config;
   const client = new GoogleAuth({
     credentials,
@@ -35,7 +35,7 @@ export const buildRouter = makeRouter(({ config }: HandlerContext) => {
   const passTemplateCache = buildPassTemplateCache<PassTemplate>();
   const refreshPassTemplateCache = async (logger: Logger, forceReload = false) => {
     if (forceReload || passTemplateCache.size === 0) {
-      const templates = await buildPassTemplates({ logger });
+      const templates = await buildPassTemplates({ logger, config });
       await Promise.all(templates.map(item => passTemplateCache.setItem(item)));
     }
   };

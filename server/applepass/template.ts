@@ -1,5 +1,4 @@
 import * as t from 'io-ts';
-import path from 'path';
 import mustache from 'mustache';
 import { v4 as uuid } from 'uuid';
 import { oneLineTrim as markdown } from 'common-tags';
@@ -24,7 +23,7 @@ export type BuildPassTemplateOptions = {
 };
 export async function buildPassTemplates(options: BuildPassTemplateOptions): Promise<PassTemplate[]> {
   const { logger, config } = options;
-  const { certificates, teamIdentifier, passTypeIdentifier } = config;
+  const { certificates, teamIdentifier, passTypeIdentifier, bundlesPath } = config;
 
   /**
    * The initial overrides for the PassModel so that we don't need to inject
@@ -38,7 +37,7 @@ export async function buildPassTemplates(options: BuildPassTemplateOptions): Pro
   /**
    * Load the packaged PassModels if there is any.
    */
-  const passBundles = await getLocalModels(path.join(__dirname, '../../assets'), logger);
+  const passBundles = await getLocalModels(bundlesPath, logger);
 
   const promises = passBundles.map(async model => {
     if (model['pass.json'] === undefined) {

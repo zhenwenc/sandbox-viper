@@ -4,7 +4,7 @@ import { oneLineTrim as markdown } from 'common-tags';
 import { createPass } from 'passkit-generator';
 
 import { Logger, NotFoundError } from '@navch/common';
-import { makeHandler, makeRouter } from '@navch/express';
+import { makeHandler, makeHandlers } from '@navch/express';
 
 import { buildPassTemplates, PassTemplate } from './template';
 import { buildPassTemplateCache } from '../cache';
@@ -16,7 +16,7 @@ export type HandlerContext = {
   readonly config: ApplePassConfig;
 };
 
-export const buildRouter = makeRouter(({ config }: HandlerContext) => {
+export default makeHandlers(({ config }: HandlerContext) => {
   let passTemplateCacheExpiry = -1;
 
   /**
@@ -158,7 +158,8 @@ export const buildRouter = makeRouter(({ config }: HandlerContext) => {
         logger.info(`Generating pkpass file: ${passName}`);
 
         const stream = pass.generate();
-        res.set({
+
+        res.writeHead(200, {
           'Content-type': 'application/vnd.apple.pkpass',
           'Content-disposition': `attachment; filename=${passName}.pkpass`,
         });

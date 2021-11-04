@@ -5,6 +5,7 @@ import path from 'path';
 import { Logger, isNotNullish } from '@navch/common';
 import { validate } from '@navch/codec';
 
+import { GooglePayPassConfig } from '../config';
 import { WalletClassType, WalletClass, WalletObjectType, WalletObject } from './model';
 
 // https://developers.google.com/pay/passes/rest/v1/offerclass
@@ -20,14 +21,11 @@ export const PassTemplate = t.type({
 
 export type BuildPassTemplatesOptions = {
   readonly logger: Logger;
+  readonly config: GooglePayPassConfig;
 };
 export async function buildPassTemplates(options: BuildPassTemplatesOptions): Promise<PassTemplate[]> {
-  const { logger } = options;
-
-  /**
-   * Load the packaged PassModels if there is any.
-   */
-  const rootDir = path.join(__dirname, '../../assets');
+  const { logger, config } = options;
+  const { bundlesPath } = config;
 
   const parseTemplateDir = (modelDir: string): PassTemplate => {
     try {
@@ -39,10 +37,13 @@ export async function buildPassTemplates(options: BuildPassTemplatesOptions): Pr
     }
   };
 
-  const passBundles = fs.readdirSync(rootDir, { withFileTypes: true }).map(dirent => {
+  /**
+   * Load the packaged PassModels if there is any.
+   */
+  const passBundles = fs.readdirSync(bundlesPath, { withFileTypes: true }).map(dirent => {
     if (dirent.name.endsWith('.paypass') && dirent.isDirectory()) {
       logger.debug(`Loading Google Pay Pass template: ${dirent.name}`);
-      return parseTemplateDir(path.join(rootDir, dirent.name));
+      return parseTemplateDir(path.join(bundlesPath, dirent.name));
     }
     return undefined;
   });
