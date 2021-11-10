@@ -16,7 +16,7 @@ export type HandlerContext = {
   readonly config: ApplePassConfig;
 };
 
-export default makeHandlers(({ config }: HandlerContext) => {
+export const buildApplePassHandlers = makeHandlers(({ config }: HandlerContext) => {
   let passTemplateCacheExpiry = -1;
 
   /**
@@ -77,7 +77,7 @@ export default makeHandlers(({ config }: HandlerContext) => {
           forceReload: t.union([t.string, t.undefined]),
         }),
       },
-      handle: async (_1, args, { res, logger }) => {
+      handle: async (_1, args, { response, logger }) => {
         const { templateId, barcode, payload, forceReload } = args;
         logger.info('Generate iOS Wallet Pass with arguments', args);
 
@@ -159,11 +159,19 @@ export default makeHandlers(({ config }: HandlerContext) => {
 
         const stream = pass.generate();
 
-        res.writeHead(200, {
+        response.set({
           'Content-type': 'application/vnd.apple.pkpass',
           'Content-disposition': `attachment; filename=${passName}.pkpass`,
         });
-        stream.pipe(res);
+        response.body = stream;
+
+        // NOTE: Example for Express/Connect handler:
+        //
+        // res.writeHead(200, {
+        //   'Content-type': 'application/vnd.apple.pkpass',
+        //   'Content-disposition': `attachment; filename=${passName}.pkpass`,
+        // });
+        // stream.pipe(res);
       },
     }),
     makeHandler({
@@ -173,16 +181,15 @@ export default makeHandlers(({ config }: HandlerContext) => {
         List the available Apple Wallet Pass templates in the application. This could be
         useful to find a template with dynamic identifier.
       `,
-      handle: async (_1, _2, { res, logger }) => {
-        logger.debug('Return predefined iOS Wallet Pass templates');
-        await refreshPassTemplateCache(logger);
+      handle: async (_1, _2, ctx) => {
+        ctx.logger.debug('Return predefined iOS Wallet Pass templates');
+        await refreshPassTemplateCache(ctx.logger);
 
         const iosPassTemplates = await passTemplateCache.getAll();
-        const results = iosPassTemplates.map(template => ({
+        return iosPassTemplates.map(template => ({
           templateId: template.templateId,
           description: template.passJson.description,
         }));
-        res.send(results);
       },
     }),
   ];

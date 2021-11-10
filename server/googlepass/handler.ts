@@ -21,7 +21,7 @@ export type HandlerContext = {
   readonly config: GooglePayPassConfig;
 };
 
-export default makeHandlers(({ config }: HandlerContext) => {
+export const buildGooglePassHandlers = makeHandlers(({ config }: HandlerContext) => {
   const { issuerId, credentials } = config;
   const client = new GoogleAuth({
     credentials,
@@ -92,7 +92,7 @@ export default makeHandlers(({ config }: HandlerContext) => {
           forceUpdate: t.union([t.string, t.undefined]),
         }),
       },
-      handle: async (_1, args, { req, res, logger }) => {
+      handle: async (_1, args, { req, redirect, logger }) => {
         const { templateId, barcode, payload, mode, forceReload, forceUpdate } = args;
         logger.info('Generate PayPass with arguments', args);
 
@@ -183,9 +183,9 @@ export default makeHandlers(({ config }: HandlerContext) => {
         logger.info('Generated Google Pay URL', { url: redirectTo });
 
         if (req.headers['accept'] === 'application/json') {
-          res.send({ token, redirectTo });
+          return { token, redirectTo };
         } else {
-          res.redirect(redirectTo);
+          return redirect(redirectTo);
         }
       },
     }),
@@ -193,19 +193,18 @@ export default makeHandlers(({ config }: HandlerContext) => {
       route: '/templates',
       method: 'GET',
       description: markdown`
-List the available Google PayPass templates in this application. These
-are predefined PayPass class objects.
+        List the available Google PayPass templates in this application. These
+        are predefined PayPass class objects.
       `,
-      handle: async (_1, _2, { res, logger }) => {
+      handle: async (_1, _2, { logger }) => {
         logger.debug('Return predefined Google PayPass templates');
         await refreshPassTemplateCache(logger);
 
         const payPassTemplates = await passTemplateCache.getAll();
-        const results = payPassTemplates.map(template => ({
+        return payPassTemplates.map(template => ({
           templateId: template.templateId,
           description: template.description,
         }));
-        res.send(results);
       },
     }),
   ];
