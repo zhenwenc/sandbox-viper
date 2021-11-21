@@ -12,17 +12,14 @@ import { decode, DecodeResult } from '../decoder';
 import { resolveTemplateValue } from '../utils';
 import { ApplePassConfig } from '../config';
 
-export type HandlerContext = {
-  readonly config: ApplePassConfig;
-};
-
-export const buildApplePassHandlers = makeHandlers(({ config }: HandlerContext) => {
-  let passTemplateCacheExpiry = -1;
+export const buildApplePassHandlers = makeHandlers(() => {
+  const config = new ApplePassConfig();
 
   /**
    * It is recommended to cache the prepared PassModel in memory to be reused by multiple
    * requests to reduce the overhead of hitting the filesystem.
    */
+  let passTemplateCacheExpiry = -1;
   const passTemplateCache = buildPassTemplateCache<PassTemplate>();
   const refreshPassTemplateCache = async (logger: Logger, forceReload = false) => {
     if (forceReload || Date.now() > passTemplateCacheExpiry) {

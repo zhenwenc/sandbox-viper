@@ -17,11 +17,9 @@ import { decode } from '../decoder';
 import { resolveTemplateValue } from '../utils';
 import { GooglePayPassConfig } from '../config';
 
-export type HandlerContext = {
-  readonly config: GooglePayPassConfig;
-};
+export const buildGooglePassHandlers = makeHandlers(() => {
+  const config = new GooglePayPassConfig();
 
-export const buildGooglePassHandlers = makeHandlers(({ config }: HandlerContext) => {
   const { issuerId, credentials } = config;
   const client = new GoogleAuth({
     credentials,
