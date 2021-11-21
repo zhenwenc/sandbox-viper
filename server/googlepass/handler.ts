@@ -7,7 +7,7 @@ import { oneLineTrim as markdown } from 'common-tags';
 import { GoogleAuth } from 'google-auth-library';
 
 import { Logger, NotFoundError } from '@navch/common';
-import { makeHandler, makeHandlers } from '@navch/express';
+import { makeHandler, makeHandlers } from '@navch/http';
 
 import * as service from './service';
 import { WalletClass, WalletObject } from './model';

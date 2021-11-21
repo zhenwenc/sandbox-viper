@@ -4,7 +4,7 @@ import { oneLineTrim as markdown } from 'common-tags';
 import { createPass } from 'passkit-generator';
 
 import { Logger, NotFoundError } from '@navch/common';
-import { makeHandler, makeHandlers } from '@navch/express';
+import { makeHandler, makeHandlers } from '@navch/http';
 
 import { buildPassTemplates, PassTemplate } from './template';
 import { buildPassTemplateCache } from '../cache';

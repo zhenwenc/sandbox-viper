@@ -2,7 +2,7 @@ import morgan from 'morgan';
 import { compose, trim } from 'ramda';
 
 import { Logger } from '@navch/common';
-import { makeRouter, middlewares, setRequestContext } from '@navch/express';
+import { makeRouter, middlewares, setRequestContext } from '@navch/http';
 
 import { AppConfig, ApplePassConfig, GooglePayPassConfig } from './config';
 import { buildApplePassHandlers } from './applepass/handler';
@@ -19,7 +19,6 @@ export function buildHandler() {
   const router = makeRouter();
   router.use(setRequestContext({ logger }));
   router.use(middlewares.fromCallback(requestLogger));
-  router.use(middlewares.useErrorHandler);
 
   // -----------------------------------------------------------------------
   // TODO Launch services on demand
