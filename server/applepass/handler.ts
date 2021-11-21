@@ -6,7 +6,7 @@ import { createPass } from 'passkit-generator';
 import { Logger, NotFoundError } from '@navch/common';
 import { makeHandler, makeHandlers } from '@navch/http';
 
-import { buildPassTemplates, PassTemplate } from './template';
+import { buildPassTemplates, buildPassModel, PassTemplate } from './template';
 import { buildPassTemplateCache } from '../cache';
 import { decode, DecodeResult } from '../decoder';
 import { resolveTemplateValue } from '../utils';
@@ -50,6 +50,10 @@ export const buildApplePassHandlers = makeHandlers(() => {
         query: t.type({
           templateId: t.string,
           /**
+           * Override the `pass.json` file defined in the bundle template.
+           */
+          passJson: t.union([t.string, t.undefined]),
+          /**
            * The value for `barcode.message` field in `pass.json`.
            */
           barcode: t.string,
@@ -75,7 +79,7 @@ export const buildApplePassHandlers = makeHandlers(() => {
         }),
       },
       handle: async (_1, args, { response, logger }) => {
-        const { templateId, barcode, payload, forceReload } = args;
+        const { templateId, barcode, payload, forceReload, ...overrides } = args;
         logger.info('Generate iOS Wallet Pass with arguments', args);
 
         // Refresh the local Wallet Pass templates if needed
@@ -97,7 +101,7 @@ export const buildApplePassHandlers = makeHandlers(() => {
         const fieldValues = { data: passPayload.payload };
         logger.debug('Generate iOS Wallet Pass with decoded payload', passPayload);
 
-        const pass = await createPass(passTemplate.abstractModel, undefined, {
+        const pass = await createPass(await buildPassModel(passTemplate, overrides), undefined, {
           overrides: {
             /**
              * Assign a unique identifier for the generated Wallet Pass.
@@ -143,7 +147,13 @@ export const buildApplePassHandlers = makeHandlers(() => {
         // NOTE Yet another pitfall, the "value" attribute must always be defined for each,
         // field in the template, otherwise it won't be picked up by the library.
         //
-        const fieldArrays = [pass.primaryFields, pass.secondaryFields, pass.auxiliaryFields, pass.backFields];
+        const fieldArrays = [
+          pass.headerFields,
+          pass.primaryFields,
+          pass.secondaryFields,
+          pass.auxiliaryFields,
+          pass.backFields,
+        ];
         fieldArrays.forEach(fieldArray => {
           fieldArray.forEach(field => {
             field.value = resolveTemplateValue(fieldValues, field.value) ?? field.value;

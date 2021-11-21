@@ -1,8 +1,9 @@
+import R from 'ramda';
 import * as t from 'io-ts';
 import mustache from 'mustache';
 import { v4 as uuid } from 'uuid';
 import { oneLineTrim as markdown } from 'common-tags';
-import { createAbstractModel, AbstractModel } from 'passkit-generator';
+import { createAbstractModel, createPass, AbstractModel } from 'passkit-generator';
 
 import { Logger } from '@navch/common';
 import { validate } from '@navch/codec';
@@ -62,4 +63,24 @@ export async function buildPassTemplates(options: BuildPassTemplateOptions): Pro
   });
 
   return await Promise.all(promises);
+}
+
+export type BuildPassOverrides = {
+  passJson?: string;
+};
+export async function buildPassModel(template: PassTemplate, overrides: BuildPassOverrides) {
+  const { abstractModel } = template;
+  const { passJson } = overrides;
+
+  if (R.isEmpty(R.reject(R.isNil, overrides))) {
+    return abstractModel;
+  }
+
+  return await createAbstractModel({
+    model: {
+      ...abstractModel.bundle.bundle,
+      ...(passJson ? { 'pass.json': Buffer.from(passJson) } : {}),
+    },
+    certificates: abstractModel.certificates,
+  });
 }

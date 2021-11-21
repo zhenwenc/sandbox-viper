@@ -17,7 +17,7 @@
     "messageEncoding": "iso-8859-1"
   },
   "organizationName": "Organic Produce",
-  "description": "Organic Produce Loyalty Card",
+  "description": "Store Loyalty Card",
   "logoText": "Organic Produce",
   "foregroundColor": "rgb(255, 255, 255)",
   "backgroundColor": "rgb(55, 117, 50)",

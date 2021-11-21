@@ -39,6 +39,11 @@ async function hcertDecode(input: string, logger: Logger) {
   const cbor = require('cbor');
   const base45 = require('base45-js');
 
+  const formatDate = (unixTime: number | undefined) => {
+    if (unixTime === undefined) return undefined;
+    return format(unixTime * 1000, 'yyyy-MM-dd');
+  };
+
   return await threadP(
     input,
     // Base45 to COSE
@@ -59,10 +64,25 @@ async function hcertDecode(input: string, logger: Logger) {
       return Uint8Array.from(buffer);
     },
     // COSE to CBOR to JSON
+    //
+    // https://github.com/ehn-dcc-development/hcert-spec/blob/main/hcert_spec.md#331-cwt-structure-overview
     async buffer => {
       const coseData = cbor.decode(buffer);
       const cborData = cbor.decode(coseData.value[2]);
-      const payload = Object.fromEntries(cborData.get(-260))[1];
+      const hcert = Object.fromEntries(cborData.get(-260))[1];
+      // const group = (hcert.v || hcert.t || hcert.r)[0];
+
+      const payload = {
+        hcert,
+        iss: cborData.get(1), // Issuer, ISO 3166-1 alpha-2
+        iat: cborData.get(6), // Issued At
+        exp: cborData.get(4), // Expiration Time
+        ext: {
+          dob: formatDate(parseISO(hcert.dob).getTime() / 1000),
+          exp: formatDate(cborData.get(4)),
+          kind: hcert.v ? 'Vaccination' : hcert.t ? 'Test' : 'Recovery',
+        },
+      };
       return { payload, rawData: Object.fromEntries(cborData) };
     }
   ).catch(err => {

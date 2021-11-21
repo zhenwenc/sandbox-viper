@@ -90,7 +90,7 @@ export const buildGooglePassHandlers = makeHandlers(() => {
           forceUpdate: t.union([t.string, t.undefined]),
         }),
       },
-      handle: async (_1, args, { req, redirect, logger }) => {
+      handle: async (_1, args, { req, response, logger }) => {
         const { templateId, barcode, payload, mode, forceReload, forceUpdate } = args;
         logger.info('Generate PayPass with arguments', args);
 
@@ -183,7 +183,7 @@ export const buildGooglePassHandlers = makeHandlers(() => {
         if (req.headers['accept'] === 'application/json') {
           return { token, redirectTo };
         } else {
-          return redirect(redirectTo);
+          return response.redirect(redirectTo);
         }
       },
     }),
