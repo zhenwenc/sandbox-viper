@@ -1,4 +1,4 @@
-import { format, parseISO } from 'date-fns';
+import { formatISO } from 'date-fns';
 import { inflate } from 'pako';
 import { stringify } from 'uuid';
 import { Logger, threadP } from '@navch/common';
@@ -39,11 +39,6 @@ async function hcertDecode(input: string, logger: Logger) {
   const cbor = require('cbor');
   const base45 = require('base45-js');
 
-  const formatDate = (unixTime: number | undefined) => {
-    if (unixTime === undefined) return undefined;
-    return format(unixTime * 1000, 'yyyy-MM-dd');
-  };
-
   return await threadP(
     input,
     // Base45 to COSE
@@ -78,8 +73,9 @@ async function hcertDecode(input: string, logger: Logger) {
         iat: cborData.get(6), // Issued At
         exp: cborData.get(4), // Expiration Time
         ext: {
-          dob: formatDate(parseISO(hcert.dob).getTime() / 1000),
-          exp: formatDate(cborData.get(4)),
+          dob: formatISO(new Date(hcert.dob)),
+          iat: formatISO(cborData.get(6) * 1000),
+          exp: formatISO(cborData.get(4) * 1000),
           kind: hcert.v ? 'Vaccination' : hcert.t ? 'Test' : 'Recovery',
         },
       };
@@ -98,11 +94,6 @@ async function nzcpDecode(input: string, logger: Logger) {
   logger.debug('Decoding NZCP payload', { input });
   const cbor = require('cbor');
   const base32 = require('hi-base32');
-
-  const formatDate = (unixTime: number | undefined) => {
-    if (unixTime === undefined) return undefined;
-    return format(unixTime * 1000, 'yyyy-MM-dd');
-  };
 
   return await threadP(
     input,
@@ -131,13 +122,15 @@ async function nzcpDecode(input: string, logger: Logger) {
       const subject = cborData.get('vc')['credentialSubject'];
       const payload = {
         iss: cborData.get(1),
+        iat: cborData.get(5), // Issued At
+        exp: cborData.get(4), // Expiration Time
         cti: stringify(cborData.get(7)), // CWT ID
         jti: 'urn:uuid:' + stringify(cborData.get(7)), // JTI ID
-        iat: formatDate(cborData.get(5)), // Issued At
-        exp: formatDate(cborData.get(4)), // Expiration Time
         ext: {
-          dob: formatDate(parseISO(subject.dob).getTime() / 1000),
           name: [subject.givenName, subject.familyName].filter(Boolean).join(' '),
+          dob: formatISO(new Date(subject.dob)),
+          iat: formatISO(cborData.get(5) * 1000), // Issued At
+          exp: formatISO(cborData.get(4) * 1000), // Expiration Time
         },
         vc: cborData.get('vc'),
       };

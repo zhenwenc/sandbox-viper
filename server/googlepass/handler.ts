@@ -1,8 +1,11 @@
+import R from 'ramda';
 import * as t from 'io-ts';
 import pluralize from 'pluralize';
 import cloneDeep from 'lodash/cloneDeep';
 import cloneDeepWith from 'lodash/cloneDeepWith';
 import { v4 as uuid } from 'uuid';
+import { parseISO } from 'date-fns';
+import { format as formatDate, utcToZonedTime } from 'date-fns-tz';
 import { oneLineTrim as markdown } from 'common-tags';
 import { GoogleAuth } from 'google-auth-library';
 
@@ -120,6 +123,12 @@ export const buildGooglePassHandlers = makeHandlers(() => {
           reviewStatus: 'approved', // 'underReview',
         };
 
+        const timeZone = 'Pacific/Auckland';
+        const dateFormat = "yyyy-MM-dd'T'HH:mm:ss";
+        const formatZonedDate = (date: Date | number): string => {
+          return formatDate(utcToZonedTime(date, timeZone), dateFormat, { timeZone });
+        };
+
         // Construct the PayPass object with the decoded payload by substituting field
         // values in the generated pass with the input data.
         //
@@ -130,7 +139,15 @@ export const buildGooglePassHandlers = makeHandlers(() => {
             barcode,
             issuerId,
           },
-          data: passPayload.payload,
+          data: R.mergeDeepRight(passPayload.payload, {
+            // Reformat expiration date due to Google doesn't properly support expiration
+            // at the moment, this is an experimental feature.
+            ext: {
+              dob: formatDate(new Date(passPayload.payload.ext.dob), dateFormat),
+              iat: formatZonedDate(parseISO(passPayload.payload.ext.iat)),
+              exp: formatZonedDate(parseISO(passPayload.payload.ext.exp)),
+            },
+          }),
         };
         const objectRecord: WalletObject = cloneDeepWith(cloneDeep(objectTemplate), key => {
           if (typeof key !== 'string') return undefined;
@@ -199,7 +216,7 @@ export const buildGooglePassHandlers = makeHandlers(() => {
         await refreshPassTemplateCache(logger);
 
         const payPassTemplates = await passTemplateCache.getAll();
-        return payPassTemplates.map(template => ({
+        return payPassTemplates.sort(R.ascend(x => x.description)).map(template => ({
           templateId: template.templateId,
           description: template.description,
         }));

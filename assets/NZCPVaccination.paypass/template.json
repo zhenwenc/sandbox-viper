@@ -1,14 +1,15 @@
 {
   "templateId": "nzcp",
-  "description": "COVID Vaccination Card",
+  "description": "NZ COVID Pass",
   "objectType": "covidCardObject",
   "objectTemplate": {
     "id": "{{ meta.id }}",
     "issuerId": "{{ meta.issuerId }}",
     "title": "NZ COVID Pass",
     "cardColorHex": "#E6E5F0",
-    "expiration": "{{ data.exp }}",
-    "validFrom": "2021-10-01",
+    "expiration": "{{ data.ext.exp }}",
+    "validFrom": "{{ data.ext.iat }}",
+    "dateFormat": "DATE_YEAR",
     "logo": {
       "sourceUri": {
         "description": "Ministry of Health Manatū Hauora",

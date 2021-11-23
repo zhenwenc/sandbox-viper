@@ -7,7 +7,7 @@
     "message": ""
   },
   "organizationName": "Ministry of Health Manatū Hauora",
-  "description": "NZ COVID Certificate",
+  "description": "NZ COVID Pass",
   "labelColor": "#333333",
   "foregroundColor": "#1A1A18",
   "backgroundColor": "#E6E5F0",
@@ -29,14 +29,22 @@
       {
         "key": "dob",
         "label": "DATE OF BIRTH",
-        "value": "{{ data.ext.dob }}"
+        "value": "{{ data.ext.dob }}",
+        "dateStyle": "PKDateStyleMedium"
       }
     ],
     "auxiliaryFields": [
       {
+        "key": "iat",
+        "label": "VALID FROM",
+        "value": "{{ data.ext.iat }}",
+        "dateStyle": "PKDateStyleMedium"
+      },
+      {
         "key": "exp",
         "label": "DATE OF EXPIRY",
-        "value": "{{ data.exp }}"
+        "value": "{{ data.ext.exp }}",
+        "dateStyle": "PKDateStyleMedium"
       }
     ],
     "backFields": [

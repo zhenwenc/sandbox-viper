@@ -1,3 +1,4 @@
+import R from 'ramda';
 import * as t from 'io-ts';
 import { v4 as uuid } from 'uuid';
 import { oneLineTrim as markdown } from 'common-tags';
@@ -193,7 +194,7 @@ export const buildApplePassHandlers = makeHandlers(() => {
         await refreshPassTemplateCache(ctx.logger);
 
         const iosPassTemplates = await passTemplateCache.getAll();
-        return iosPassTemplates.map(template => ({
+        return iosPassTemplates.sort(R.ascend(x => x.passJson.description)).map(template => ({
           templateId: template.templateId,
           description: template.passJson.description,
         }));

@@ -1,16 +1,16 @@
 {
   "formatVersion": 1,
-  "serialNumber": "dcc",
+  "serialNumber": "dcc-vaccination",
   "webServiceURL": "https://www.covidpasscertificate.com",
   "authenticationToken": "vxwxd7J8AlNNFPS8k0a0FfUFtq0ewzFdc",
   "barcode": {
     "format": "PKBarcodeFormatQR",
     "messageEncoding": "iso-8859-1",
     "message": "",
-    "altText": "{{ data.v.0.ci }}"
+    "altText": "{{ data.hcert.v.0.ci }}"
   },
   "organizationName": "COVID Passport",
-  "description": "EU COVID Certificate",
+  "description": "EU COVID Vaccination Pass",
   "backgroundColor": "rgb(255,255,255)",
   "foregroundColor": "rgb(0,0,0)",
   "labelColor": "rgb(17,50,147)",
@@ -35,46 +35,46 @@
       {
         "key": "full_name",
         "label": "NAME",
-        "value": "{{ data.nam.gn }} {{ data.nam.fn }}"
+        "value": "{{ data.hcert.nam.gn }} {{ data.hcert.nam.fn }}"
       },
       {
         "key": "dob",
         "label": "DATE OF BIRTH",
-        "value": "{{ data.dob }}"
+        "value": "{{ data.hcert.dob }}"
       }
     ],
     "auxiliaryFields": [
       {
         "key": "dov",
         "label": "DATE OF VACCINATION",
-        "value": "{{ data.v.0.dt }}"
+        "value": "{{ data.hcert.v.0.dt }}"
       },
       {
         "key": "doses",
         "label": "DOSES",
-        "value": "{{ data.v.0.dn }}/{{ data.v.0.sd }}"
+        "value": "{{ data.hcert.v.0.dn }}/{{ data.hcert.v.0.sd }}"
       },
       {
         "key": "certificate_issuer",
         "label": "ISSUER",
-        "value": "{{ data.v.0.is }}"
+        "value": "{{ data.hcert.v.0.is }}"
       }
     ],
     "backFields": [
       {
         "key": "family_name",
         "label": "Family name",
-        "value": "{{ data.nam.fn }}"
+        "value": "{{ data.hcert.nam.fn }}"
       },
       {
         "key": "given_name",
         "label": "Given name",
-        "value": "{{ data.nam.gn }}"
+        "value": "{{ data.hcert.nam.gn }}"
       },
       {
         "key": "Date of birth",
         "label": "Date of birth",
-        "value": "{{ data.dob }}"
+        "value": "{{ data.hcert.dob }}"
       }
     ]
   }
