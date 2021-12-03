@@ -5,6 +5,7 @@ import { Logger } from '@navch/common';
 import { makeRouter, middlewares, setRequestContext } from '@navch/http';
 
 import { AppConfig } from './config';
+import { buildDecoderHandlers } from './decoder/handler';
 import { buildApplePassHandlers } from './applepass/handler';
 import { buildGooglePassHandlers } from './googlepass/handler';
 
@@ -27,9 +28,11 @@ export function buildHandler() {
   // interested in some of the functionalities it provides. Therefore, we don't
   // enforce you to provide all environment variables to start with.
 
+  const decoRouter = makeRouter(buildDecoderHandlers());
   const applRouter = makeRouter(buildApplePassHandlers());
   const googRouter = makeRouter(buildGooglePassHandlers());
 
+  router.use('/api/decode', decoRouter.routes(), decoRouter.allowedMethods());
   router.use('/api/pass/ios', applRouter.routes(), applRouter.allowedMethods());
   router.use('/api/pass/android', googRouter.routes(), googRouter.allowedMethods());
 

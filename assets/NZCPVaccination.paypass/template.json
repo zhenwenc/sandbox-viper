@@ -30,6 +30,16 @@
     "patientDetails": {
       "dateOfBirth": "{{ data.ext.dob }}",
       "patientName": "{{ data.ext.name }}"
-    }
+    },
+    "textModulesData": [
+      {
+        "header": "Disclaimer",
+        "body": "This certificate is only demonstration purposes."
+      },
+      {
+        "header": "Empty Field",
+        "body": ""
+      }
+    ]
   }
 }

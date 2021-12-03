@@ -13,10 +13,10 @@ import { Logger, NotFoundError } from '@navch/common';
 import { makeHandler, makeHandlers } from '@navch/http';
 
 import * as service from './service';
+import { decode } from '../decoder/service';
 import { WalletClass, WalletObject } from './model';
 import { buildPassTemplates, PassTemplate } from './template';
 import { buildPassTemplateCache } from '../cache';
-import { decode } from '../decoder';
 import { resolveTemplateValue } from '../utils';
 import { GooglePayPassConfig } from '../config';
 
