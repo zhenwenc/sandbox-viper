@@ -3,7 +3,7 @@ import * as t from 'io-ts';
 import mustache from 'mustache';
 import { v4 as uuid } from 'uuid';
 import { oneLineTrim as markdown } from 'common-tags';
-import { createAbstractModel, createPass, AbstractModel } from 'passkit-generator';
+import { createAbstractModel, AbstractModel } from 'passkit-generator';
 
 import { Logger } from '@navch/common';
 import { validate } from '@navch/codec';
