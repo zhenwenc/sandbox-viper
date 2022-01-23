@@ -5,6 +5,7 @@ import { Logger } from '@navch/common';
 import { makeRouter, middlewares, setRequestContext } from '@navch/http';
 
 import { AppConfig } from './config';
+import { buildInMemoryStorage } from './storage';
 import { buildDecoderHandlers } from './decoder/handler';
 import { buildApplePassHandlers } from './applepass/handler';
 import { buildGooglePassHandlers } from './googlepass/handler';
@@ -12,6 +13,8 @@ import { buildGooglePassHandlers } from './googlepass/handler';
 export function buildHandler() {
   const config = new AppConfig();
   const logger = new Logger({ name: 'viper', prettyPrint: !config.isProdEnv });
+
+  const storage = buildInMemoryStorage();
 
   const requestLogger = morgan('dev', {
     stream: { write: compose(logger.debug, trim) },
@@ -29,8 +32,8 @@ export function buildHandler() {
   // enforce you to provide all environment variables to start with.
 
   const decoRouter = makeRouter(buildDecoderHandlers());
-  const applRouter = makeRouter(buildApplePassHandlers());
-  const googRouter = makeRouter(buildGooglePassHandlers());
+  const applRouter = makeRouter(buildApplePassHandlers({ storage }));
+  const googRouter = makeRouter(buildGooglePassHandlers({ storage }));
 
   router.use('/api/decode', decoRouter.routes(), decoRouter.allowedMethods());
   router.use('/api/pass/ios', applRouter.routes(), applRouter.allowedMethods());

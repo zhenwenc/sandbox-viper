@@ -13,14 +13,18 @@ import { Logger, NotFoundError } from '@navch/common';
 import { makeHandler, makeHandlers } from '@navch/http';
 
 import * as service from './service';
+import { Storage } from '../storage';
 import { decode } from '../decoder/service';
 import { WalletClass, WalletObject } from './model';
 import { buildPassTemplates, PassTemplate } from './template';
-import { buildPassTemplateCache } from '../cache';
 import { resolveTemplateValue } from '../utils';
 import { GooglePayPassConfig } from '../config';
 
-export const buildGooglePassHandlers = makeHandlers(() => {
+export type GooglePassOptions = {
+  readonly storage: Storage;
+};
+
+export const buildGooglePassHandlers = makeHandlers(({ storage }: GooglePassOptions) => {
   const config = new GooglePayPassConfig();
 
   const { issuerId, credentials } = config;
@@ -33,11 +37,10 @@ export const buildGooglePassHandlers = makeHandlers(() => {
    * It is recommended to cache the prepared PassModel in memory to be reused by multiple
    * requests to reduce the overhead of hitting the filesystem.
    */
-  const passTemplateCache = buildPassTemplateCache<PassTemplate>();
   const refreshPassTemplateCache = async (logger: Logger, forceReload = false) => {
-    if (forceReload || passTemplateCache.size === 0) {
+    if (forceReload || storage.isEmpty()) {
       const templates = await buildPassTemplates({ logger, config });
-      await Promise.all(templates.map(item => passTemplateCache.setItem(item)));
+      await Promise.all(templates.map(item => storage.setItem(item.templateId, item)));
     }
   };
 
@@ -75,7 +78,7 @@ export const buildGooglePassHandlers = makeHandlers(() => {
           mode: t.union([t.literal('auto'), t.literal('skinny'), t.undefined]),
           /**
            * The Pass templates are cached in memory during the application runtime. See
-           * usages of `passTemplateCache` for details.
+           * usages of `storage` for details.
            *
            * However, it's annoying when you're frequently modifying the Pass templates
            * during development that the changes aren't been pickup automatically.
@@ -95,13 +98,13 @@ export const buildGooglePassHandlers = makeHandlers(() => {
       },
       handle: async (_1, args, { req, response, logger }) => {
         const { templateId, barcode, payload, mode, forceReload, forceUpdate } = args;
-        logger.info('Generate PayPass with arguments', args);
+        logger.info('Generate Google PayPass with arguments', args);
 
         // Refresh the local Wallet Pass templates if needed
         await refreshPassTemplateCache(logger, Boolean(forceReload));
 
         // Fine Google PayPass template by ID
-        const passTemplate = await passTemplateCache.getItem(templateId);
+        const passTemplate = await storage.getItem<PassTemplate>(templateId);
         if (!passTemplate) {
           throw new NotFoundError(`No template found with ID "${templateId}"`);
         }
@@ -215,7 +218,7 @@ export const buildGooglePassHandlers = makeHandlers(() => {
         logger.debug('Return predefined Google PayPass templates');
         await refreshPassTemplateCache(logger);
 
-        const payPassTemplates = await passTemplateCache.getAll();
+        const payPassTemplates = await storage.getAll<PassTemplate>();
         return payPassTemplates.sort(R.ascend(x => x.description)).map(template => ({
           templateId: template.templateId,
           description: template.description,

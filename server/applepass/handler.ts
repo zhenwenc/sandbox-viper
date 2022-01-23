@@ -7,13 +7,17 @@ import { createPass } from 'passkit-generator';
 import { Logger, NotFoundError } from '@navch/common';
 import { makeHandler, makeHandlers } from '@navch/http';
 
+import { Storage } from '../storage';
 import { decode, DecodeResult } from '../decoder/service';
 import { buildPassTemplates, buildPassModel, PassTemplate } from './template';
-import { buildPassTemplateCache } from '../cache';
 import { resolveTemplateValue } from '../utils';
 import { ApplePassConfig } from '../config';
 
-export const buildApplePassHandlers = makeHandlers(() => {
+export type ApplePassOptions = {
+  readonly storage: Storage;
+};
+
+export const buildApplePassHandlers = makeHandlers(({ storage }: ApplePassOptions) => {
   const config = new ApplePassConfig();
 
   /**
@@ -21,11 +25,10 @@ export const buildApplePassHandlers = makeHandlers(() => {
    * requests to reduce the overhead of hitting the filesystem.
    */
   let passTemplateCacheExpiry = -1;
-  const passTemplateCache = buildPassTemplateCache<PassTemplate>();
   const refreshPassTemplateCache = async (logger: Logger, forceReload = false) => {
     if (forceReload || Date.now() > passTemplateCacheExpiry) {
       const templates = await buildPassTemplates({ logger, config });
-      await Promise.all(templates.map(item => passTemplateCache.setItem(item)));
+      await Promise.all(templates.map(item => storage.setItem(item.templateId, item)));
       passTemplateCacheExpiry = Date.now() + 3600 * 1000;
     }
   };
@@ -69,7 +72,7 @@ export const buildApplePassHandlers = makeHandlers(() => {
           payload: t.union([t.string, t.undefined]),
           /**
            * The Pass templates are cached in memory during the application runtime. See
-           * usages of `passTemplateCache` for details.
+           * usages of `storage` for details.
            *
            * However, it's annoying when you're frequently modifying the Pass templates
            * during development that the changes aren't been pickup automatically.
@@ -87,7 +90,7 @@ export const buildApplePassHandlers = makeHandlers(() => {
         await refreshPassTemplateCache(logger, Boolean(forceReload));
 
         // Fine Wallet Pass template by ID
-        const passTemplate = await passTemplateCache.getItem(templateId);
+        const passTemplate = await storage.getItem<PassTemplate>(templateId);
         if (!passTemplate) {
           throw new NotFoundError(`No template found with ID "${templateId}"`);
         }
@@ -193,7 +196,7 @@ export const buildApplePassHandlers = makeHandlers(() => {
         ctx.logger.debug('Return predefined iOS Wallet Pass templates');
         await refreshPassTemplateCache(ctx.logger);
 
-        const iosPassTemplates = await passTemplateCache.getAll();
+        const iosPassTemplates = await storage.getAll<PassTemplate>();
         return iosPassTemplates.sort(R.ascend(x => x.passJson.description)).map(template => ({
           templateId: template.templateId,
           description: template.passJson.description,
