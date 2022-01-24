@@ -9,7 +9,7 @@ import { makeHandler, makeHandlers } from '@navch/http';
 
 import { Storage } from '../storage';
 import { decode, DecodeResult } from '../decoder/service';
-import { buildPassTemplates, buildPassModel, PassTemplate } from './template';
+import { buildPassTemplates, PassTemplate } from './template';
 import { resolveTemplateValue } from '../utils';
 import { ApplePassConfig } from '../config';
 
@@ -54,10 +54,6 @@ export const buildApplePassHandlers = makeHandlers(({ storage }: ApplePassOption
         query: t.type({
           templateId: t.string,
           /**
-           * Override the `pass.json` file defined in the bundle template.
-           */
-          passJson: t.union([t.string, t.undefined]),
-          /**
            * The value for `barcode.message` field in `pass.json`.
            */
           barcode: t.string,
@@ -83,7 +79,7 @@ export const buildApplePassHandlers = makeHandlers(({ storage }: ApplePassOption
         }),
       },
       handle: async (_1, args, { response, logger }) => {
-        const { templateId, barcode, payload, forceReload, ...overrides } = args;
+        const { templateId, barcode, payload, forceReload } = args;
         logger.info('Generate iOS Wallet Pass with arguments', args);
 
         // Refresh the local Wallet Pass templates if needed
@@ -105,7 +101,7 @@ export const buildApplePassHandlers = makeHandlers(({ storage }: ApplePassOption
         const fieldValues = { data: passPayload.payload };
         logger.debug('Generate iOS Wallet Pass with decoded payload', passPayload);
 
-        const pass = await createPass(await buildPassModel(passTemplate, overrides), undefined, {
+        const pass = await createPass(passTemplate.abstractModel, undefined, {
           overrides: {
             /**
              * Assign a unique identifier for the generated Wallet Pass.
