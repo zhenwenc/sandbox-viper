@@ -2,6 +2,7 @@ import * as t from 'io-ts';
 import fs from 'fs-extra';
 import path from 'path';
 import yauzl from 'yauzl';
+import { AbstractModel } from 'passkit-generator';
 import { Logger, isNotNullish } from '@navch/common';
 
 export const PassModelBarcode = t.type({
@@ -17,8 +18,8 @@ export const PassModelBarcode = t.type({
 });
 
 export const PassModelLocation = t.type({
-  longitude: t.number,
   latitude: t.number,
+  longitude: t.number,
 });
 
 export const PassModelField = t.type({
@@ -81,25 +82,139 @@ export type PassModelBundle = {
   'pass.json'?: Buffer;
   'it.lproj/pass.strings'?: Buffer;
 };
-
 export type PassModelFolder = {
   'modelDir': string;
   'pass.json': Buffer;
 };
-
-export type PassModelDefinition = PassModelFolder | PassModelBundle;
-export const isPassModelBundle = (def: PassModelDefinition): def is PassModelBundle => {
-  return !('modelDir' in def);
+export type LocalPassModel = PassModelFolder | PassModelBundle;
+export const isPassModelBundle = (value: LocalPassModel): value is PassModelBundle => {
+  return !('modelDir' in value);
 };
+
+export type PassImageDefinition = t.TypeOf<typeof PassImageDefinition>;
+export const PassImageDefinition = t.type({
+  /**
+   * Data URL of the image. Only PNG image is supported.
+   *
+   * @example
+   * ```
+   * { "url": "data:image/png;base64,iVBOR...gg==" }
+   * ```
+   */
+  url: t.string,
+});
+
+/**
+ * Pass styles and relevant image types:
+ *
+ * | Pass style    | Supported images                         |
+ * |---------------|------------------------------------------|
+ * | Boarding pass | logo, icon, footer                       |
+ * | Coupon        | logo, icon, strip                        |
+ * | Event ticket  | logo, icon, strip, background, thumbnail |
+ * | Generic       | logo, icon, thumbnail                    |
+ * | Store card    | logo, icon, strip                        |
+ *
+ * See the offial Apple Pass design guide for details.
+ */
+export type PassImageDefinitions = t.TypeOf<typeof PassImageDefinitions>;
+export const PassImageDefinitions = t.partial({
+  /**
+   * The logo image is displayed in the top left corner of the pass beside the logo
+   * text.
+   *
+   * The allotted space is 320 x 100 points; in most cases it should be more narrow.
+   */
+  logo: PassImageDefinition,
+  /**
+   * The icon image is displayed when a pass is shown on the lock screen and by apps
+   * such as Mail when the pass is attached to an email.
+   *
+   * The icon should have dimensions of 58 x 58 points.
+   */
+  icon: PassImageDefinition,
+  /**
+   * The strip image strip.png is displayed behind the primary fields. The expected
+   * dimensions are 640 x 168-246 points. The allotted space is 640 x 168 points for
+   * event tickets; 640 x 220 points for other pass styles with a square barcode on
+   * devices with 3.5 inch screens; 640 x 246 for all other uses.
+   */
+  strip: PassImageDefinition,
+  /**
+   * The footer image is displayed near the barcode.
+   *
+   * The allotted space is 572 x 30 points.
+   */
+  footer: PassImageDefinition,
+  /**
+   * The background image is displayed behind the entire front side of the pass. The
+   * expected dimensions are 360 x 440 points. The image is slightly cropped on all
+   * sides and also blurred.
+   *
+   * You can often provide an image at a smaller size. It will be scaled up, but the
+   * blurring effect will hide the details of the image. This lets you reduce the file
+   * size without users noticing the difference.
+   */
+  background: PassImageDefinition,
+  /**
+   * The thumbnail image thumbnail.png is displayed next to the fields on the front
+   * side of the pass. The allotted space is 120-180 x 120-180 points. The aspect
+   * ratio should be in the range of 2:3 to 3:2 or the image will be cropped.
+   */
+  thumbnail: PassImageDefinition,
+});
+
+/**
+ * Represents template data model used for generating passes (PKPASS file).
+ *
+ * TODO support translations
+ */
+export type PassTemplateDefinition = t.TypeOf<typeof PassTemplateDefinition>;
+export const PassTemplateDefinition = t.strict({
+  /**
+   * Pass appearance definition, layout, fields, barcodes and other pass properties.
+   */
+  model: PassModel,
+  /**
+   * List of images attaching to the pass. See template layout design for details.
+   */
+  images: PassImageDefinitions,
+});
+
+export type PassTemplate = t.TypeOf<typeof PassTemplate>;
+export const PassTemplate = t.type({
+  templateId: t.string,
+  model: PassModel,
+  abstractModel: t.unknown as t.Type<AbstractModel>,
+});
+
+/**
+ * The credentials for signing the generated Apple Pass, must be in PEM format.
+ *
+ * See `passkit-generator` docs for details to generate the certificates.
+ */
+export type PassCredentials = t.TypeOf<typeof PassCredentials>;
+export const PassCredentials = t.type({
+  teamIdentifier: t.string,
+  passTypeIdentifier: t.string,
+  certificates: t.type({
+    wwdr: t.string,
+    signerCert: t.string,
+    signerKey: t.type({
+      keyFile: t.string,
+      passphrase: t.string,
+    }),
+  }),
+});
 
 /**
  * Function that reads the Apple Wallet Pass template model from a folder.
  * This is the preferred approach when the application has filesystem access.
  */
-export async function parseModelDir(modelDir: string): Promise<PassModelDefinition> {
+async function parseModelDir(modelDir: string): Promise<LocalPassModel> {
   try {
-    const passJson = fs.readFileSync(path.join(modelDir, 'pass.json'));
-    return { modelDir, 'pass.json': passJson };
+    const model = fs.readFileSync(path.join(modelDir, 'pass.json'));
+    return { modelDir, 'pass.json': model };
   } catch (err) {
     err.message = `Failed to parse Apple Pass model at ${modelDir}: ${err.message}`;
     throw err;
@@ -113,7 +228,7 @@ export async function parseModelDir(modelDir: string): Promise<PassModelDefiniti
  *
  * FIXME: The callback hell style is really ugly, is there any better way?
  */
-export async function parseModelZip(modelZip: Buffer): Promise<PassModelDefinition> {
+async function parseModelZip(modelZip: Buffer): Promise<LocalPassModel> {
   const validFileNames = [
     'logo.png',
     'logo@2x.png',

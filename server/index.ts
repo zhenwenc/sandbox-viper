@@ -14,7 +14,8 @@ export function buildHandler() {
   const config = new AppConfig();
   const logger = new Logger({ name: 'viper', prettyPrint: !config.isProdEnv });
 
-  const storage = buildInMemoryStorage();
+  const applStorage = buildInMemoryStorage();
+  const googStorage = buildInMemoryStorage();
 
   const requestLogger = morgan('dev', {
     stream: { write: compose(logger.debug, trim) },
@@ -32,8 +33,8 @@ export function buildHandler() {
   // enforce you to provide all environment variables to start with.
 
   const decoRouter = makeRouter(buildDecoderHandlers());
-  const applRouter = makeRouter(buildApplePassHandlers({ storage }));
-  const googRouter = makeRouter(buildGooglePassHandlers({ storage }));
+  const applRouter = makeRouter(buildApplePassHandlers({ storage: applStorage }));
+  const googRouter = makeRouter(buildGooglePassHandlers({ storage: googStorage }));
 
   router.use('/api/decode', decoRouter.routes(), decoRouter.allowedMethods());
   router.use('/api/pass/ios', applRouter.routes(), applRouter.allowedMethods());

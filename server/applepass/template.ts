@@ -1,21 +1,21 @@
-import * as t from 'io-ts';
 import mustache from 'mustache';
+import parseDataURL from 'data-urls';
 import { v4 as uuid } from 'uuid';
 import { oneLineTrim as markdown } from 'common-tags';
-import { createAbstractModel, AbstractModel } from 'passkit-generator';
+import { createAbstractModel } from 'passkit-generator';
 
-import { Logger } from '@navch/common';
+import { Logger, BadRequestError } from '@navch/common';
 import { validate } from '@navch/codec';
 
 import { ApplePassConfig } from '../config';
-import { PassModel, isPassModelBundle, getLocalModels } from './model';
-
-export type PassTemplate = t.TypeOf<typeof PassTemplate>;
-export const PassTemplate = t.type({
-  templateId: t.string,
-  abstractModel: t.unknown as t.Type<AbstractModel>,
-  passJson: PassModel,
-});
+import {
+  PassModel,
+  PassTemplate,
+  PassCredentials,
+  PassTemplateDefinition,
+  isPassModelBundle,
+  getLocalModels,
+} from './model';
 
 export type BuildPassTemplateOptions = {
   readonly logger: Logger;
@@ -58,8 +58,49 @@ export async function buildPassTemplates(options: BuildPassTemplateOptions): Pro
     }
     const templateId = passJson.serialNumber ?? uuid();
 
-    return { templateId, passJson, abstractModel };
+    return { templateId, model: passJson, abstractModel };
+  });
+  return await Promise.all(promises);
+}
+
+export type BuildDynamicTemplateOptions = {
+  readonly definition: PassTemplateDefinition;
+  readonly credentials: PassCredentials;
+};
+export async function buildDynamicTemplate(options: BuildDynamicTemplateOptions): Promise<PassTemplate> {
+  const { credentials, definition } = options;
+  const { model, images } = definition;
+  const { certificates, teamIdentifier, passTypeIdentifier } = credentials;
+
+  const parseImageDataURL = (url: string) => {
+    // NOTE: The parser function does not raise error when encountered invalid URL but
+    // returns `null`, unless for invalid data type, such as parsing a non-string value.
+    const image = parseDataURL(url);
+    if (!image) {
+      throw new BadRequestError(`Invalid image URL: ${url}`);
+    }
+    if (image.mimeType.essence !== 'image/png') {
+      throw new BadRequestError('Only PNG image is supported.');
+    }
+    return image;
+  };
+
+  const template = {
+    'pass.json': Buffer.from(JSON.stringify(model)),
+  };
+
+  /**
+   * Load each defined image into the pass bundle.
+   */
+  Object.entries(images).forEach(([kind, { url }]) => {
+    const parsed = parseImageDataURL(url);
+    template[`${kind}.png`] = Buffer.from(parsed.body);
   });
 
-  return await Promise.all(promises);
+  const abstractModel = await createAbstractModel({
+    model: template,
+    certificates,
+    overrides: { teamIdentifier, passTypeIdentifier },
+  });
+  return { templateId: uuid(), model, abstractModel };
 }

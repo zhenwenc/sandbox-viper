@@ -1,17 +1,18 @@
 import R from 'ramda';
 import * as t from 'io-ts';
-import { v4 as uuid } from 'uuid';
+import { isString } from 'lodash';
 import { oneLineTrim as markdown } from 'common-tags';
-import { createPass } from 'passkit-generator';
+import { Pass } from 'passkit-generator';
 
 import { Logger, NotFoundError } from '@navch/common';
-import { makeHandler, makeHandlers } from '@navch/http';
+import { Response, makeHandler, makeHandlers } from '@navch/http';
 
 import { Storage } from '../storage';
-import { decode, DecodeResult } from '../decoder/service';
-import { buildPassTemplates, PassTemplate } from './template';
-import { resolveTemplateValue } from '../utils';
+import { PassTemplate, PassTemplateDefinition, PassCredentials } from './model';
+import { decode } from '../decoder/service';
+import { buildPassTemplates, buildDynamicTemplate } from './template';
 import { ApplePassConfig } from '../config';
+import { createWalletPass } from './service';
 
 export type ApplePassOptions = {
   readonly storage: Storage;
@@ -24,21 +25,57 @@ export const buildApplePassHandlers = makeHandlers(({ storage }: ApplePassOption
    * It is recommended to cache the prepared PassModel in memory to be reused by multiple
    * requests to reduce the overhead of hitting the filesystem.
    */
-  let passTemplateCacheExpiry = -1;
   const refreshPassTemplateCache = async (logger: Logger, forceReload = false) => {
-    if (forceReload || Date.now() > passTemplateCacheExpiry) {
+    if (forceReload || storage.isEmpty()) {
       const templates = await buildPassTemplates({ logger, config });
       await Promise.all(templates.map(item => storage.setItem(item.templateId, item)));
-      passTemplateCacheExpiry = Date.now() + 3600 * 1000;
     }
+  };
+
+  const findPassTemplate = async (templateId: string, logger: Logger, forceReload = false) => {
+    // Refresh the local Wallet Pass templates if needed
+    await refreshPassTemplateCache(logger, Boolean(forceReload));
+
+    // Fine Wallet Pass template by ID
+    const result = await storage.getItem<PassTemplate>(templateId);
+    if (!result) {
+      throw new NotFoundError(`No template found with ID "${templateId}"`);
+    }
+    return result;
+  };
+
+  /**
+   * Sends the generated Apple Pass bundle as response payload.
+   *
+   * NOTE: Example for Express/Connect handler:
+   *
+   * res.writeHead(200, {
+   *   'Content-type': 'application/vnd.apple.pkpass',
+   *   'Content-disposition': `attachment; filename=${passName}.pkpass`,
+   * });
+   * stream.pipe(res);
+   */
+  const sendWalletPass = (logger: Logger, res: Response, pass: Pass) => {
+    const stream = pass.generate();
+
+    // Generate the stream .pkpass file stream
+    const passName = `viper-${Date.now()}`;
+    logger.info(`Generated pkpass file: ${passName}`);
+
+    res.set({
+      'Content-type': 'application/vnd.apple.pkpass',
+      'Content-disposition': `attachment; filename=${passName}.pkpass`,
+    });
+    res.body = stream;
   };
 
   return [
     makeHandler({
       route: '/',
-      method: 'GET',
+      method: 'POST',
       description: markdown`
-        The primary endpoint for generating Apple Wallet Pass from a defined template.
+        This advanced endpoint orchestrates the Apple Wallet Pass generation using the
+        given resources in the request payload.
 
         You can invoke this API from a web browser, then open the downloaded .pkpass file
         with the macOS built-in Pass Viewer application, or inspect the Pass in iPhone
@@ -51,24 +88,34 @@ export const buildApplePassHandlers = makeHandlers(({ storage }: ApplePassOption
         downloaded Pass into your Apple Wallet.
       `,
       input: {
-        query: t.type({
-          templateId: t.string,
+        body: t.type({
+          /**
+           * The template that used to generate the pass bundle, or the id of a predefined
+           * template (use value of the `serialNumber` property).
+           */
+          template: t.union([t.string, PassTemplateDefinition]),
+          /**
+           * The credentials to sign the generated pass bundle.
+           *
+           * TODO maybe support JWKs
+           */
+          credentials: PassCredentials,
           /**
            * The value for `barcode.message` field in `pass.json`.
            */
           barcode: t.string,
           /**
-           * An optional payload to fill the Pass template. If undefined, the application
-           * will attempt to decode it from the given `barcode`.
+           * Additional data to fill the pass template. By default, the application will
+           * attempt to decode and provide data from the given `barcode`.
            *
            * The field values are lookup via `Lodash#get` function, you must specify each
            * templated field in `key: a.b[1].c` format. If no matched value found from the
            * payload, original value in the template will be used.
            */
-          payload: t.union([t.string, t.undefined]),
+          dynamicData: t.union([t.record(t.string, t.unknown), t.undefined]),
           /**
-           * The Pass templates are cached in memory during the application runtime. See
-           * usages of `storage` for details.
+           * The predefined templates are cached in memory during the application runtime.
+           * See usages of `storage` for details.
            *
            * However, it's annoying when you're frequently modifying the Pass templates
            * during development that the changes aren't been pickup automatically.
@@ -79,106 +126,26 @@ export const buildApplePassHandlers = makeHandlers(({ storage }: ApplePassOption
         }),
       },
       handle: async (_1, args, { response, logger }) => {
-        const { templateId, barcode, payload, forceReload } = args;
-        logger.info('Generate iOS Wallet Pass with arguments', args);
+        const { template, credentials, barcode, dynamicData, forceReload } = args;
+        logger.info('Generate Apple Wallet Pass with custom template');
 
-        // Refresh the local Wallet Pass templates if needed
-        await refreshPassTemplateCache(logger, Boolean(forceReload));
+        const passTemplate = isString(template)
+          ? await findPassTemplate(template, logger, Boolean(forceReload))
+          : await buildDynamicTemplate({ definition: template, credentials });
 
-        // Fine Wallet Pass template by ID
-        const passTemplate = await storage.getItem<PassTemplate>(templateId);
-        if (!passTemplate) {
-          throw new NotFoundError(`No template found with ID "${templateId}"`);
-        }
-        logger.debug('Generate iOS Wallet Pass with template');
+        // Attempt to obtain the Wallet Pass template data from the barcode message
+        const decoded = await decode(barcode, logger);
 
-        // Attempt to obtain the Wallet Pass template payload by decoding the input
-        // barcode when `payload` argument is undefined.
-        const passPayload: DecodeResult = payload
-          ? { payload: JSON.parse(payload), rawData: payload }
-          : await decode(barcode, logger);
+        // Merge template data with request-scoped dynamic data if provided
+        const payload = dynamicData ? R.mergeDeepRight(decoded, dynamicData) : decoded;
 
-        const fieldValues = { data: passPayload.payload };
-        logger.debug('Generate iOS Wallet Pass with decoded payload', passPayload);
-
-        const pass = await createPass(passTemplate.abstractModel, undefined, {
-          overrides: {
-            /**
-             * Assign a unique identifier for the generated Wallet Pass.
-             *
-             * The combination of pass type identifier and serial number is used throughout
-             * PassKit to uniquely identify a pass. Two passes of the same type with the same
-             * serial number are understood to be the same pass, even if other information
-             * on them differs.
-             *
-             * This field is important if you intent to push Pass Updates.
-             * @see {@link https://developer.apple.com/documentation/walletpasses}
-             */
-            serialNumber: uuid(),
-          },
+        const pass = await createWalletPass({
+          logger,
+          barcode,
+          payload,
+          template: passTemplate,
         });
-
-        // Adding some settings to be written inside pass.json
-        if (passTemplate.passJson.barcode?.altText) {
-          pass.barcodes({
-            format: passTemplate.passJson.barcode?.format || 'PKBarcodeFormatQR',
-            messageEncoding: passTemplate.passJson.barcode?.messageEncoding || 'iso-8859-1',
-            message: barcode,
-            altText: resolveTemplateValue(fieldValues, passTemplate.passJson.barcode.altText),
-          });
-        } else {
-          pass.barcodes({
-            format: passTemplate.passJson.barcode?.format || 'PKBarcodeFormatQR',
-            messageEncoding: passTemplate.passJson.barcode?.messageEncoding || 'iso-8859-1',
-            message: barcode,
-          });
-        }
-
-        // TODO Why the library's `FieldsArray#splice` function doesn't work?
-        //      It will results in an invalid Pass bundle.
-        //
-        // Substitute field values in the generated pass with the input data. The ordering
-        // of fields within the list is significant.
-        //
-        // NOTE When the barcode format is PKBarcodeFormatQR, the two `secondaryFields` and
-        // `auxiliaryFields` fields will be combined into one row. Watch out for the maximum
-        // number of displayable fields.
-        //
-        // NOTE Yet another pitfall, the "value" attribute must always be defined for each,
-        // field in the template, otherwise it won't be picked up by the library.
-        //
-        const fieldArrays = [
-          pass.headerFields,
-          pass.primaryFields,
-          pass.secondaryFields,
-          pass.auxiliaryFields,
-          pass.backFields,
-        ];
-        fieldArrays.forEach(fieldArray => {
-          fieldArray.forEach(field => {
-            field.value = resolveTemplateValue(fieldValues, field.value) ?? field.value;
-          });
-        });
-
-        // Generate the stream .pkpass file stream
-        const passName = `viper-${Date.now()}`;
-        logger.info(`Generating pkpass file: ${passName}`);
-
-        const stream = pass.generate();
-
-        response.set({
-          'Content-type': 'application/vnd.apple.pkpass',
-          'Content-disposition': `attachment; filename=${passName}.pkpass`,
-        });
-        response.body = stream;
-
-        // NOTE: Example for Express/Connect handler:
-        //
-        // res.writeHead(200, {
-        //   'Content-type': 'application/vnd.apple.pkpass',
-        //   'Content-disposition': `attachment; filename=${passName}.pkpass`,
-        // });
-        // stream.pipe(res);
+        sendWalletPass(logger, response, pass);
       },
     }),
     makeHandler({
@@ -193,9 +160,9 @@ export const buildApplePassHandlers = makeHandlers(({ storage }: ApplePassOption
         await refreshPassTemplateCache(ctx.logger);
 
         const iosPassTemplates = await storage.getAll<PassTemplate>();
-        return iosPassTemplates.sort(R.ascend(x => x.passJson.description)).map(template => ({
+        return iosPassTemplates.sort(R.ascend(x => x.model?.description)).map(template => ({
           templateId: template.templateId,
-          description: template.passJson.description,
+          description: template.model?.description,
         }));
       },
     }),

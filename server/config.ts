@@ -26,7 +26,7 @@ export class ApplePassConfig extends AppConfig {
     signerCert: this.read('APPLE_PASS_SIGNER_CERT'),
     signerKey: {
       keyFile: this.read('APPLE_PASS_SIGNER_KEY'),
-      passphrase: this.read('APPLE_PASS_SIGNER_KEY_PASS'),
+      passphrase: this.read('APPLE_PASS_SIGNER_PASSPHRASE'),
     },
   };
   readonly teamIdentifier = this.read('APPLE_PASS_TEAM_ID');
