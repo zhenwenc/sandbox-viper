@@ -1,56 +1,63 @@
 import R from 'ramda';
 import * as t from 'io-ts';
-import pluralize from 'pluralize';
-import cloneDeep from 'lodash/cloneDeep';
-import cloneDeepWith from 'lodash/cloneDeepWith';
-import { v4 as uuid } from 'uuid';
-import { parseISO } from 'date-fns';
-import { format as formatDate, utcToZonedTime } from 'date-fns-tz';
+import { isString } from 'lodash';
 import { oneLineTrim as markdown } from 'common-tags';
-import { GoogleAuth } from 'google-auth-library';
 
 import { Logger, NotFoundError } from '@navch/common';
 import { makeHandler, makeHandlers } from '@navch/http';
 
-import * as service from './service';
+import { createWalletPass } from './service';
 import { Storage } from '../storage';
+import { AppConfig } from '../config';
 import { decode } from '../decoder/service';
-import { WalletClass, WalletObject } from './model';
-import { buildPassTemplates, PassTemplate } from './template';
-import { resolveTemplateValue } from '../utils';
-import { GooglePayPassConfig } from '../config';
+import { getLocalTemplates } from '../template/service';
+import { PassCredentials, PassTemplateDefinition } from './types';
 
 export type GooglePassOptions = {
+  readonly config: AppConfig;
   readonly storage: Storage;
 };
 
-export const buildGooglePassHandlers = makeHandlers(({ storage }: GooglePassOptions) => {
-  const config = new GooglePayPassConfig();
-
-  const { issuerId, credentials } = config;
-  const client = new GoogleAuth({
-    credentials,
-    scopes: ['https://www.googleapis.com/auth/wallet_object.issuer'],
-  });
-
-  /**
-   * It is recommended to cache the prepared PassModel in memory to be reused by multiple
-   * requests to reduce the overhead of hitting the filesystem.
-   */
+export const buildGooglePassHandlers = makeHandlers(({ config, storage }: GooglePassOptions) => {
+  // Refresh the local Wallet Pass templates if needed
   const refreshPassTemplateCache = async (logger: Logger, forceReload = false) => {
     if (forceReload || storage.isEmpty()) {
-      const templates = await buildPassTemplates({ logger, config });
-      await Promise.all(templates.map(item => storage.setItem(item.templateId, item)));
+      const items = await getLocalTemplates({
+        logger,
+        schema: PassTemplateDefinition,
+        rootDir: config.googlePassTemplatesPath,
+      });
+      await Promise.all(items.map(item => storage.setItem(item.id, item)));
     }
+  };
+
+  // Fine Wallet Pass template by ID
+  const findTemplateById = async (logger: Logger, templateId: string, forceReload = false) => {
+    await refreshPassTemplateCache(logger, forceReload);
+    const result = await storage.getItem<PassTemplateDefinition>(templateId);
+    if (!result) {
+      throw new NotFoundError(`No template found with ID "${templateId}"`);
+    }
+    return result;
   };
 
   return [
     makeHandler({
       route: '/',
-      method: 'GET',
+      method: 'POST',
       input: {
-        query: t.type({
-          templateId: t.string,
+        body: t.type({
+          /**
+           * The definition of a template to be used for generating the pass bundle, or
+           * the identifier of a predefined template.
+           */
+          template: t.union([t.string, PassTemplateDefinition]),
+          /**
+           * The credentials to sign the generated pass bundle.
+           *
+           * TODO maybe support JWKs
+           */
+          credentials: PassCredentials,
           /**
            * The value for `barcode.value` field in the created `WalletObject`.
            *
@@ -58,14 +65,14 @@ export const buildGooglePassHandlers = makeHandlers(({ storage }: GooglePassOpti
            */
           barcode: t.string,
           /**
-           * An optional payload to fill the Pass template. If undefined, the application
-           * will attempt to decode it from the given `barcode`.
+           * Additional data to fill the pass template. By default, the application will
+           * attempt to decode and provide data from the given `barcode`.
            *
            * The field values are lookup via `Lodash#get` function, you must specify each
            * templated field in `key: a.b[1].c` format. If no matched value found from the
            * payload, original value in the template will be used.
            */
-          payload: t.union([t.string, t.undefined]),
+          dynamicData: t.union([t.record(t.string, t.unknown), t.undefined]),
           /**
            * By default, both the PayPass class definition (issuer metadata, styles, etc.)
            * are included in the JWT token, which may cause the resulting URL to exceed the
@@ -77,8 +84,8 @@ export const buildGooglePassHandlers = makeHandlers(({ storage }: GooglePassOpti
            */
           mode: t.union([t.literal('auto'), t.literal('skinny'), t.undefined]),
           /**
-           * The Pass templates are cached in memory during the application runtime. See
-           * usages of `storage` for details.
+           * The predefined templates are cached in memory during the application runtime.
+           * See usages of `storage` for details.
            *
            * However, it's annoying when you're frequently modifying the Pass templates
            * during development that the changes aren't been pickup automatically.
@@ -97,105 +104,28 @@ export const buildGooglePassHandlers = makeHandlers(({ storage }: GooglePassOpti
         }),
       },
       handle: async (_1, args, { req, response, logger }) => {
-        const { templateId, barcode, payload, mode, forceReload, forceUpdate } = args;
+        const { template, credentials, barcode, dynamicData, mode, forceReload, forceUpdate } = args;
         logger.info('Generate Google PayPass with arguments', args);
 
-        // Refresh the local Wallet Pass templates if needed
-        await refreshPassTemplateCache(logger, Boolean(forceReload));
+        const passTemplate = isString(template)
+          ? await findTemplateById(logger, template, Boolean(forceReload))
+          : template;
 
-        // Fine Google PayPass template by ID
-        const passTemplate = await storage.getItem<PassTemplate>(templateId);
-        if (!passTemplate) {
-          throw new NotFoundError(`No template found with ID "${templateId}"`);
-        }
-        const { classType, classTemplate, objectType, objectTemplate } = passTemplate;
+        // Attempt to obtain the template data from the barcode message
+        const decoded = await decode(barcode, logger);
 
-        // Attempt to obtain the PayPass template payload by decoding the input
-        // barcode when `payload` argument is undefined.
-        //
-        const passPayload = payload
-          ? { payload: JSON.parse(payload), rawData: payload }
-          : await decode(barcode, logger);
-        logger.debug('Generate PayPass with decoded payload', passPayload);
+        // Merge template data with request-scoped dynamic data if provided
+        const payload = dynamicData ? R.mergeDeepRight(decoded, dynamicData) : decoded;
 
-        // Construct the PayPass class with the template if provided
-        //
-        const classRecord: WalletClass = {
-          ...classTemplate,
-          id: `${issuerId}.${templateId}`,
-          reviewStatus: 'approved', // 'underReview',
-        };
-
-        const timeZone = 'Pacific/Auckland';
-        const dateFormat = "yyyy-MM-dd'T'HH:mm:ss";
-        const formatZonedDate = (date: Date | number): string => {
-          return formatDate(utcToZonedTime(date, timeZone), dateFormat, { timeZone });
-        };
-
-        // Construct the PayPass object with the decoded payload by substituting field
-        // values in the generated pass with the input data.
-        //
-        const objectFields = {
-          meta: {
-            id: `${issuerId}.${uuid()}`,
-            classId: classRecord.id,
-            barcode,
-            issuerId,
-          },
-          data: R.mergeDeepRight(passPayload.payload, {
-            // Reformat expiration date due to Google doesn't properly support expiration
-            // at the moment, this is an experimental feature.
-            ext: {
-              dob: formatDate(new Date(passPayload.payload.ext.dob), dateFormat),
-              iat: formatZonedDate(parseISO(passPayload.payload.ext.iat)),
-              exp: formatZonedDate(parseISO(passPayload.payload.ext.exp)),
-            },
-          }),
-        };
-        const objectRecord: WalletObject = cloneDeepWith(cloneDeep(objectTemplate), key => {
-          if (typeof key !== 'string') return undefined;
-          return resolveTemplateValue(objectFields, key);
+        const token = await createWalletPass({
+          logger,
+          template: passTemplate,
+          credentials,
+          barcode,
+          payload,
+          useSkinnyToken: mode === 'skinny',
+          forceUpdate: Boolean(forceUpdate),
         });
-
-        // Generate JWT token for "Save To Android Pay" button
-        //
-        // https://developers.google.com/pay/passes/guides/implement-the-api/save-passes-to-google-pay
-        const token = await Promise.resolve().then(async () => {
-          if (classType && mode === 'skinny') {
-            await service.createWalletClass({
-              logger,
-              client,
-              classType,
-              classInput: classRecord,
-              forceUpdate: Boolean(forceUpdate),
-            });
-            const walletObject = await service.createWalletObject({
-              logger,
-              client,
-              objectType,
-              objectInput: { ...objectRecord, classId: classRecord.id },
-            });
-            return await service.signPayPassToken({
-              logger,
-              issuer: credentials.client_email,
-              issuerKey: credentials.private_key,
-              payload: {
-                [pluralize(objectType)]: [{ id: walletObject.id }],
-              },
-            });
-          } else {
-            return await service.signPayPassToken({
-              logger,
-              issuer: credentials.client_email,
-              issuerKey: credentials.private_key,
-              payload: {
-                [pluralize(objectType)]: [objectRecord],
-                ...(classType && { [pluralize(classType)]: [classRecord] }),
-              },
-            });
-          }
-        });
-        logger.debug('Signed PayPass JWT token', { token });
 
         const redirectTo = `https://pay.google.com/gp/v/save/${token}`;
         logger.info('Generated Google Pay URL', { url: redirectTo });
@@ -218,10 +148,10 @@ export const buildGooglePassHandlers = makeHandlers(({ storage }: GooglePassOpti
         logger.debug('Return predefined Google PayPass templates');
         await refreshPassTemplateCache(logger);
 
-        const payPassTemplates = await storage.getAll<PassTemplate>();
-        return payPassTemplates.sort(R.ascend(x => x.description)).map(template => ({
-          templateId: template.templateId,
-          description: template.description,
+        const templates = await storage.getAll<PassTemplateDefinition>();
+        return templates.sort(R.ascend(x => x.description)).map(item => ({
+          templateId: item.id,
+          description: item.description,
         }));
       },
     }),

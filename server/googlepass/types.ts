@@ -75,3 +75,48 @@ export const WalletObject = t.intersection([
     classReference: t.union([t.unknown, t.undefined]),
   }),
 ]);
+
+/**
+ * Represents template data model used for generating passes (Google Pay URL).
+ *
+ * https://developers.google.com/pay/passes/rest/v1/offerclass
+ */
+export type PassTemplateDefinition = t.TypeOf<typeof PassTemplateDefinition>;
+export const PassTemplateDefinition = t.type({
+  /**
+   * Unique identifier, only used for predefined templates.
+   */
+  id: t.string,
+  /**
+   * Brief description of the template, used for the companion GUI tool.
+   */
+  description: t.string,
+  classType: t.union([WalletClassType, t.undefined]),
+  classTemplate: t.union([WalletClass, t.undefined]),
+  objectType: WalletObjectType,
+  objectTemplate: WalletObject,
+});
+
+/**
+ * The GCP service account credentials for signing the generated JWT token. You must
+ * enable Google Pay API for "skinny JWT token".
+ *
+ * ```
+ * static gcpCredentialsSchema = t.type({
+ *   type: t.literal('service_account'),
+ *   project_id: t.string,
+ *   private_key: t.string,
+ *   private_key_id: t.string,
+ *   client_id: t.string,
+ *   client_email: t.string,
+ * });
+ * ```
+ */
+export type PassCredentials = t.TypeOf<typeof PassCredentials>;
+export const PassCredentials = t.type({
+  issuerId: t.string,
+  certificates: t.type({
+    clientEmail: t.string, // client_email
+    clientSecret: t.string, // private_key
+  }),
+});

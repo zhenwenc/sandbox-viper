@@ -8,36 +8,34 @@ import { Logger, NotFoundError } from '@navch/common';
 import { Response, makeHandler, makeHandlers } from '@navch/http';
 
 import { Storage } from '../storage';
-import { PassTemplate, PassTemplateDefinition, PassCredentials } from './model';
+import { AppConfig } from '../config';
+import { getLocalTemplates } from '../template/service';
+import { PassTemplateDefinition, PassCredentials } from './types';
 import { decode } from '../decoder/service';
-import { buildPassTemplates, buildDynamicTemplate } from './template';
-import { ApplePassConfig } from '../config';
 import { createWalletPass } from './service';
 
 export type ApplePassOptions = {
+  readonly config: AppConfig;
   readonly storage: Storage;
 };
 
-export const buildApplePassHandlers = makeHandlers(({ storage }: ApplePassOptions) => {
-  const config = new ApplePassConfig();
-
-  /**
-   * It is recommended to cache the prepared PassModel in memory to be reused by multiple
-   * requests to reduce the overhead of hitting the filesystem.
-   */
+export const buildApplePassHandlers = makeHandlers(({ config, storage }: ApplePassOptions) => {
+  // Refresh the local Wallet Pass templates if needed
   const refreshPassTemplateCache = async (logger: Logger, forceReload = false) => {
     if (forceReload || storage.isEmpty()) {
-      const templates = await buildPassTemplates({ logger, config });
-      await Promise.all(templates.map(item => storage.setItem(item.templateId, item)));
+      const items = await getLocalTemplates({
+        logger,
+        schema: PassTemplateDefinition,
+        rootDir: config.applePassTemplatesPath,
+      });
+      await Promise.all(items.map(item => storage.setItem(item.id, item)));
     }
   };
 
-  const findPassTemplate = async (templateId: string, logger: Logger, forceReload = false) => {
-    // Refresh the local Wallet Pass templates if needed
-    await refreshPassTemplateCache(logger, Boolean(forceReload));
-
-    // Fine Wallet Pass template by ID
-    const result = await storage.getItem<PassTemplate>(templateId);
+  // Fine Wallet Pass template by ID
+  const findTemplateById = async (logger: Logger, templateId: string, forceReload = false) => {
+    await refreshPassTemplateCache(logger, forceReload);
+    const result = await storage.getItem<PassTemplateDefinition>(templateId);
     if (!result) {
       throw new NotFoundError(`No template found with ID "${templateId}"`);
     }
@@ -90,8 +88,8 @@ export const buildApplePassHandlers = makeHandlers(({ storage }: ApplePassOption
       input: {
         body: t.type({
           /**
-           * The template that used to generate the pass bundle, or the id of a predefined
-           * template (use value of the `serialNumber` property).
+           * The definition of a template to be used for generating the pass bundle, or
+           * the identifier of a predefined template.
            */
           template: t.union([t.string, PassTemplateDefinition]),
           /**
@@ -129,11 +127,11 @@ export const buildApplePassHandlers = makeHandlers(({ storage }: ApplePassOption
         const { template, credentials, barcode, dynamicData, forceReload } = args;
         logger.info('Generate Apple Wallet Pass with custom template');
 
-        const passTemplate = isString(template)
-          ? await findPassTemplate(template, logger, Boolean(forceReload))
-          : await buildDynamicTemplate({ definition: template, credentials });
+        const passTemplate: PassTemplateDefinition = isString(template)
+          ? await findTemplateById(logger, template, Boolean(forceReload))
+          : template;
 
-        // Attempt to obtain the Wallet Pass template data from the barcode message
+        // Attempt to obtain the template data from the barcode message
         const decoded = await decode(barcode, logger);
 
         // Merge template data with request-scoped dynamic data if provided
@@ -144,6 +142,7 @@ export const buildApplePassHandlers = makeHandlers(({ storage }: ApplePassOption
           barcode,
           payload,
           template: passTemplate,
+          credentials,
         });
         sendWalletPass(logger, response, pass);
       },
@@ -155,14 +154,14 @@ export const buildApplePassHandlers = makeHandlers(({ storage }: ApplePassOption
         List the available Apple Wallet Pass templates in the application. This could be
         useful to find a template with dynamic identifier.
       `,
-      handle: async (_1, _2, ctx) => {
-        ctx.logger.debug('Return predefined iOS Wallet Pass templates');
-        await refreshPassTemplateCache(ctx.logger);
+      handle: async (_1, _2, { logger }) => {
+        logger.debug('Return predefined Apple Wallet Pass templates');
+        await refreshPassTemplateCache(logger);
 
-        const iosPassTemplates = await storage.getAll<PassTemplate>();
-        return iosPassTemplates.sort(R.ascend(x => x.model?.description)).map(template => ({
-          templateId: template.templateId,
-          description: template.model?.description,
+        const templates = await storage.getAll<PassTemplateDefinition>();
+        return templates.sort(R.ascend(x => x.model?.description)).map(item => ({
+          templateId: item.id,
+          description: item.model?.description,
         }));
       },
     }),

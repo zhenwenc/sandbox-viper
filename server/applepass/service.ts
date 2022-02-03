@@ -1,25 +1,55 @@
+import parseDataURL from 'data-urls';
 import { v4 as uuid } from 'uuid';
 import { createPass, Pass } from 'passkit-generator';
 
-import { Logger } from '@navch/common';
+import { Logger, BadRequestError } from '@navch/common';
 
-import { resolveTemplateValue } from '../utils';
-import { PassTemplate } from './model';
+import { resolveTemplateValue } from '../template/renderer';
+import { PassTemplateDefinition, PassCredentials } from './types';
+
+const parseImageDataURL = (url: string) => {
+  // NOTE: The parser function does not raise error when encountered invalid URL but
+  // returns `null`, unless for invalid data type, such as parsing a non-string value.
+  const image = parseDataURL(url);
+  if (!image) {
+    throw new BadRequestError(`Invalid image URL: ${url}`);
+  }
+  if (image.mimeType.essence !== 'image/png') {
+    throw new BadRequestError('Only PNG image is supported.');
+  }
+  return image;
+};
 
 export type CreateWalletPassRequest = {
   readonly logger: Logger;
-  readonly template: PassTemplate;
+  readonly template: PassTemplateDefinition;
+  readonly credentials: PassCredentials;
   readonly barcode: string;
   readonly payload: Record<string, unknown>;
 };
 export async function createWalletPass(req: CreateWalletPassRequest): Promise<Pass> {
-  const { logger, template, payload, barcode } = req;
+  const { logger, template, credentials, payload, barcode } = req;
+  const { model, images } = template;
+  const { certificates, teamIdentifier, passTypeIdentifier } = credentials;
+  logger.debug('Generate Apple Wallet Pass with decoded payload', payload);
 
-  const fieldValues = { data: payload };
-  logger.debug('Generate iOS Wallet Pass with decoded payload', payload);
+  /**
+   * Load each defined image into the pass bundle.
+   */
+  const assets = Object.entries(images).reduce((accu, [kind, { url }]) => {
+    const parsed = parseImageDataURL(url);
+    return { ...accu, [`${kind}.png`]: Buffer.from(parsed.body) };
+  }, {});
 
-  const pass = await createPass(template.abstractModel, undefined, {
+  const pass = await createPass({
+    model: {
+      ...assets,
+      'pass.json': Buffer.from(JSON.stringify(model)),
+    },
+    certificates,
     overrides: {
+      teamIdentifier,
+      passTypeIdentifier,
       /**
        * Assign a unique identifier for the generated Wallet Pass.
        *
@@ -41,7 +71,7 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<Pa
       format: template.model.barcode?.format || 'PKBarcodeFormatQR',
       messageEncoding: template.model.barcode?.messageEncoding || 'iso-8859-1',
       message: barcode,
-      altText: resolveTemplateValue(fieldValues, template.model.barcode.altText),
+      altText: resolveTemplateValue(payload, template.model.barcode.altText),
     });
   } else {
     pass.barcodes({
@@ -73,7 +103,7 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<Pa
   ];
   fieldArrays.forEach(fieldArray => {
     fieldArray.forEach(field => {
-      field.value = resolveTemplateValue(fieldValues, field.value) ?? field.value;
+      field.value = resolveTemplateValue(payload, field.value) ?? field.value;
     });
   });
 

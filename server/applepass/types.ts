@@ -1,9 +1,4 @@
 import * as t from 'io-ts';
-import fs from 'fs-extra';
-import path from 'path';
-import yauzl from 'yauzl';
-import { AbstractModel } from 'passkit-generator';
-import { Logger, isNotNullish } from '@navch/common';
 
 export const PassModelBarcode = t.type({
   format: t.union([
@@ -69,27 +64,6 @@ export const PassModel = t.type({
   barcode: t.union([PassModelBarcode, t.undefined]),
   locations: t.union([t.array(PassModelLocation), t.undefined]),
 });
-
-export type PassModelBundle = {
-  'logo.png'?: Buffer;
-  'logo@2x.png'?: Buffer;
-  'icon.png'?: Buffer;
-  'icon@2x.png'?: Buffer;
-  'strip.png'?: Buffer;
-  'strip@2x.png'?: Buffer;
-  'thumbnail.png'?: Buffer;
-  'thumbnail@2x.png'?: Buffer;
-  'pass.json'?: Buffer;
-  'it.lproj/pass.strings'?: Buffer;
-};
-export type PassModelFolder = {
-  'modelDir': string;
-  'pass.json': Buffer;
-};
-export type LocalPassModel = PassModelFolder | PassModelBundle;
-export const isPassModelBundle = (value: LocalPassModel): value is PassModelBundle => {
-  return !('modelDir' in value);
-};
 
 export type PassImageDefinition = t.TypeOf<typeof PassImageDefinition>;
 export const PassImageDefinition = t.type({
@@ -172,6 +146,10 @@ export const PassImageDefinitions = t.partial({
 export type PassTemplateDefinition = t.TypeOf<typeof PassTemplateDefinition>;
 export const PassTemplateDefinition = t.strict({
   /**
+   * Unique identifier, mainly used for predefined templates.
+   */
+  id: t.string,
+  /**
    * Pass appearance definition, layout, fields, barcodes and other pass properties.
    */
   model: PassModel,
@@ -181,15 +159,8 @@ export const PassTemplateDefinition = t.strict({
   images: PassImageDefinitions,
 });
 
-export type PassTemplate = t.TypeOf<typeof PassTemplate>;
-export const PassTemplate = t.type({
-  templateId: t.string,
-  model: PassModel,
-  abstractModel: t.unknown as t.Type<AbstractModel>,
-});
-
 /**
- * The credentials for signing the generated Apple Pass, must be in PEM format.
+ * The credentials for signing the generated Apple Pass, must be PEM text.
  *
  * See `passkit-generator` docs for details to generate the certificates.
  */
@@ -206,110 +177,3 @@ export const PassCredentials = t.type({
     }),
   }),
 });
-
-/**
- * Function that reads the Apple Wallet Pass template model from a folder.
- * This is the preferred approach when the application has filesystem access.
- */
-async function parseModelDir(modelDir: string): Promise<LocalPassModel> {
-  try {
-    const model = fs.readFileSync(path.join(modelDir, 'pass.json'));
-    return { modelDir, 'pass.json': model };
-  } catch (err) {
-    err.message = `Failed to parse Apple Pass model at ${modelDir}: ${err.message}`;
-    throw err;
-  }
-}
-
-/**
- * Function that extracts the Apple Wallet Pass template model from a ZIP buffer.
- * This is useful when the template is stored in the database or fetched from remote
- * server that doesn't work well with multiple files.
- *
- * FIXME: The callback hell style is really ugly, is there any better way?
- */
-async function parseModelZip(modelZip: Buffer): Promise<LocalPassModel> {
-  const validFileNames = [
-    'logo.png',
-    'logo@2x.png',
-    'icon.png',
-    'icon@2x.png',
-    'thumbnail.png',
-    'thumbnail@2x.png',
-    'pass.json',
-    'it.lproj/pass.strings',
-  ];
-
-  // Extract the given entry's content into a Buffer
-  const readEntry = (bundle: yauzl.ZipFile, entry: yauzl.Entry, cb: (buf: Buffer) => void) => {
-    bundle.openReadStream(entry, (err, readStream) => {
-      // if the stream is already closed, or the compressed data is invalid, it will emit an error
-      if (err) {
-        err.message = `Failed to read entry contnet for ${entry.fileName}: ${err.message}`;
-        throw err;
-      }
-      // this case doesn't seem to be possible
-      if (!readStream) {
-        throw new Error(`Expected read stream for entry: ${entry.fileName}`);
-      }
-      const chunks: Uint8Array[] = [];
-      readStream.on('data', chunk => chunks.push(chunk));
-      readStream.on('end', () => cb(Buffer.concat(chunks)));
-    });
-  };
-
-  const program = new Promise<PassModelBundle>((resolve, reject) => {
-    const result = {} as PassModelBundle;
-
-    yauzl.fromBuffer(modelZip, { autoClose: true, lazyEntries: true }, (err, bundle) => {
-      if (err) return reject(err);
-      if (bundle === undefined) {
-        throw new Error('No content found from pass model bundle');
-      }
-
-      bundle.readEntry();
-      bundle.on('end', () => resolve(result));
-      bundle.on('entry', (entry: yauzl.Entry) => {
-        if (/\/$/.test(entry.fileName)) {
-          // for directories, if the entry's file names end with '/'
-          bundle.readEntry();
-        } else {
-          // the tarball may contains OS metadata which we don't care about.
-          //
-          // XXX: We may apply post filter the results with exact record type
-          const fileName = validFileNames.find(str => {
-            return entry.fileName.endsWith(`/${str}`);
-          });
-          if (fileName !== undefined) {
-            readEntry(bundle, entry, buffer => {
-              result[fileName] = buffer;
-              bundle.readEntry();
-            });
-          } else {
-            bundle.readEntry();
-          }
-        }
-      });
-    });
-  });
-
-  return await program.catch(err => {
-    err.message = `Failed to parse model bundle zip: ${err.message}`;
-    throw err;
-  });
-}
-
-export async function getLocalModels(rootDir: string, logger: Logger) {
-  const promises = fs.readdirSync(rootDir, { withFileTypes: true }).map(dirent => {
-    if (dirent.name.endsWith('.pass') && dirent.isDirectory()) {
-      logger.debug(`Loading Apple Pass template: ${dirent.name}`);
-      return parseModelDir(path.join(rootDir, dirent.name));
-    }
-    if (dirent.name.endsWith('.pass.zip') && dirent.isFile()) {
-      logger.debug(`Loading Apple Pass template: ${dirent.name}`);
-      return parseModelZip(fs.readFileSync(path.join(rootDir, dirent.name)));
-    }
-    return Promise.resolve(undefined);
-  });
-  return (await Promise.all(promises)).filter(isNotNullish);
-}

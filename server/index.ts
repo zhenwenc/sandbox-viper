@@ -33,8 +33,8 @@ export function buildHandler() {
   // enforce you to provide all environment variables to start with.
 
   const decoRouter = makeRouter(buildDecoderHandlers());
-  const applRouter = makeRouter(buildApplePassHandlers({ storage: applStorage }));
-  const googRouter = makeRouter(buildGooglePassHandlers({ storage: googStorage }));
+  const applRouter = makeRouter(buildApplePassHandlers({ config, storage: applStorage }));
+  const googRouter = makeRouter(buildGooglePassHandlers({ config, storage: googStorage }));
 
   router.use('/api/decode', decoRouter.routes(), decoRouter.allowedMethods());
   router.use('/api/pass/ios', applRouter.routes(), applRouter.allowedMethods());

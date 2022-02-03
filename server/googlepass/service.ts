@@ -1,10 +1,23 @@
+import R from 'ramda';
 import jwt from 'jsonwebtoken';
+import pluralize from 'pluralize';
+import cloneDeep from 'lodash/cloneDeep';
+import cloneDeepWith from 'lodash/cloneDeepWith';
+import { v4 as uuid } from 'uuid';
 import { GaxiosError } from 'gaxios';
 import { GoogleAuth } from 'google-auth-library';
 import { Logger, NotFoundError, recoverP } from '@navch/common';
 import { validate } from '@navch/codec';
 
-import { WalletObject, WalletClass, WalletClassType, WalletObjectType } from './model';
+import { resolveTemplateValue } from '../template/renderer';
+import {
+  WalletObject,
+  WalletClass,
+  WalletClassType,
+  WalletObjectType,
+  PassTemplateDefinition,
+  PassCredentials,
+} from './types';
 
 export type ListWalletClassRequest = {
   readonly logger: Logger;
@@ -200,4 +213,90 @@ export async function signPayPassToken(req: SignPayPassTokenRequest) {
   };
   logger.debug('Sign Google Wallet JWT token', { claims });
   return jwt.sign(claims, issuerKey, { algorithm: 'RS256' });
+}
+
+export type CreateWalletPassRequest = {
+  readonly logger: Logger;
+  readonly template: PassTemplateDefinition;
+  readonly credentials: PassCredentials;
+  readonly barcode: string;
+  readonly payload: Record<string, unknown>;
+  readonly useSkinnyToken: boolean;
+  readonly forceUpdate: boolean;
+};
+export async function createWalletPass(req: CreateWalletPassRequest): Promise<string> {
+  const { logger, template, credentials, barcode, payload, forceUpdate, useSkinnyToken } = req;
+  const { id, classType, classTemplate, objectType, objectTemplate } = template;
+  const { issuerId } = credentials;
+
+  logger.debug('Generate Google Pay Pass with decoded payload', payload);
+
+  // Construct the PayPass class with the template if provided
+  //
+  const classRecord: WalletClass = {
+    ...classTemplate,
+    id: `${issuerId}.${id}`,
+    reviewStatus: 'approved', // 'underReview',
+  };
+
+  // Construct the PayPass object with the decoded payload by substituting field
+  // values in the generated pass with the input data.
+  //
+  const objectFields = R.mergeDeepRight(payload, {
+    meta: {
+      id: `${issuerId}.${uuid()}`,
+      classId: classRecord.id,
+      barcode,
+      issuerId,
+    },
+  });
+  const objectRecord: WalletObject = cloneDeepWith(cloneDeep(objectTemplate), key => {
+    if (typeof key !== 'string') return undefined;
+    return resolveTemplateValue(objectFields, key);
+  });
+
+  // Generate JWT token for "Save To Android Pay" button
+  //
+  // https://developers.google.com/pay/passes/guides/implement-the-api/save-passes-to-google-pay
+  if (classType && useSkinnyToken) {
+    const client = new GoogleAuth({
+      credentials: {
+        client_email: credentials.certificates.clientEmail,
+        private_key: credentials.certificates.clientSecret,
+      },
+      scopes: ['https://www.googleapis.com/auth/wallet_object.issuer'],
+    });
+
+    await createWalletClass({
+      logger,
+      client,
+      classType,
+      classInput: classRecord,
+      forceUpdate: Boolean(forceUpdate),
+    });
+    const walletObject = await createWalletObject({
+      logger,
+      client,
+      objectType,
+      objectInput: { ...objectRecord, classId: classRecord.id },
+    });
+    return await signPayPassToken({
+      logger,
+      issuer: credentials.certificates.clientEmail,
+      issuerKey: credentials.certificates.clientSecret,
+      payload: {
+        [pluralize(objectType)]: [{ id: walletObject.id }],
+      },
+    });
+  } else {
+    return await signPayPassToken({
+      logger,
+      issuer: credentials.certificates.clientEmail,
+      issuerKey: credentials.certificates.clientSecret,
+      payload: {
+        [pluralize(objectType)]: [objectRecord],
+        ...(classType && { [pluralize(classType)]: [classRecord] }),
+      },
+    });
+  }
 }

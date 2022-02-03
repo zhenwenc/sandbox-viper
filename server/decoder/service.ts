@@ -1,11 +1,11 @@
-import { formatISO } from 'date-fns';
 import { inflate } from 'pako';
 import { stringify } from 'uuid';
 import { Logger, threadP } from '@navch/common';
 
 export type DecodeResult = {
-  payload: Record<string, unknown>;
-  rawData: unknown; // decoded payload
+  raw: Record<string, unknown>;
+  data: Record<string, unknown>; // decoded payload
+  meta: Record<string, unknown>;
 };
 
 const patterns = {
@@ -26,7 +26,7 @@ export async function decode(input: string, logger: Logger): Promise<DecodeResul
       return await decoder(matches[1], logger);
     }
   }
-  return { payload: {}, rawData: input };
+  return { raw: {}, data: {}, meta: {} };
 }
 
 // Base45 > Zlib > COSE > CBOR > JSON
@@ -67,19 +67,13 @@ async function hcertDecode(input: string, logger: Logger) {
       const hcert = Object.fromEntries(cborData.get(-260))[1];
       // const group = (hcert.v || hcert.t || hcert.r)[0];
 
-      const payload = {
-        hcert,
-        iss: cborData.get(1), // Issuer, ISO 3166-1 alpha-2
-        iat: cborData.get(6), // Issued At
-        exp: cborData.get(4), // Expiration Time
-        ext: {
-          dob: formatISO(new Date(hcert.dob)),
-          iat: formatISO(cborData.get(6) * 1000),
-          exp: formatISO(cborData.get(4) * 1000),
-          kind: hcert.v ? 'Vaccination' : hcert.t ? 'Test' : 'Recovery',
-        },
+      const meta = {
+        iss: cborData.get(1) * 1000, // Issuer, ISO 3166-1 alpha-2
+        iat: cborData.get(6) * 1000, // Issued At
+        exp: cborData.get(4) * 1000, // Expiration Time
+        kind: hcert.v ? 'Vaccination' : hcert.t ? 'Test' : 'Recovery',
       };
-      return { payload, rawData: Object.fromEntries(cborData) };
+      return { raw: Object.fromEntries(cborData), data: hcert, meta };
     }
   ).catch(err => {
     logger.error('Failed to decode HCERT input', { err });
@@ -119,22 +113,22 @@ async function nzcpDecode(input: string, logger: Logger) {
       const coseData = cbor.decode(buffer);
       const cborData = cbor.decode(coseData.value[2]);
       // https://w3c.github.io/vc-data-model/
-      const subject = cborData.get('vc')['credentialSubject'];
-      const payload = {
-        iss: cborData.get(1),
-        iat: cborData.get(5), // Issued At
-        exp: cborData.get(4), // Expiration Time
+      // const subject = cborData.get('vc')['credentialSubject'];
+      const data = cborData.get('vc');
+      const meta = {
+        iss: cborData.get(1) * 1000,
+        iat: cborData.get(5) * 1000, // Issued At
+        exp: cborData.get(4) * 1000, // Expiration Time
         cti: stringify(cborData.get(7)), // CWT ID
         jti: 'urn:uuid:' + stringify(cborData.get(7)), // JTI ID
-        ext: {
-          name: [subject.givenName, subject.familyName].filter(Boolean).join(' '),
-          dob: formatISO(new Date(subject.dob)),
-          iat: formatISO(cborData.get(5) * 1000), // Issued At
-          exp: formatISO(cborData.get(4) * 1000), // Expiration Time
-        },
-        vc: cborData.get('vc'),
+        // ext: {
+        //   name: [subject.givenName, subject.familyName].filter(Boolean).join(' '),
+        //   dob: formatISO(new Date(subject.dob)),
+        //   iat: formatISO(cborData.get(5) * 1000), // Issued At
+        //   exp: formatISO(cborData.get(4) * 1000), // Expiration Time
+        // },
       };
-      return { payload, rawData: Object.fromEntries(cborData) };
+      return { raw: Object.fromEntries(cborData), data, meta };
     }
   ).catch(err => {
     logger.error('Failed to decode NZCP input', { err });
