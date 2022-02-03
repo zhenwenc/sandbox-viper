@@ -125,7 +125,7 @@ export const buildApplePassHandlers = makeHandlers(({ config, storage }: ApplePa
       },
       handle: async (_1, args, { response, logger }) => {
         const { template, credentials, barcode, dynamicData, forceReload } = args;
-        logger.info('Generate Apple Wallet Pass with custom template');
+        logger.info('Generate Apple Wallet Pass with arguments', { template });
 
         const passTemplate: PassTemplateDefinition = isString(template)
           ? await findTemplateById(logger, template, Boolean(forceReload))

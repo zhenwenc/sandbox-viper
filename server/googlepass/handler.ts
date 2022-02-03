@@ -103,9 +103,9 @@ export const buildGooglePassHandlers = makeHandlers(({ config, storage }: Google
           forceUpdate: t.union([t.string, t.undefined]),
         }),
       },
-      handle: async (_1, args, { req, response, logger }) => {
+      handle: async (_1, args, { logger }) => {
         const { template, credentials, barcode, dynamicData, mode, forceReload, forceUpdate } = args;
-        logger.info('Generate Google PayPass with arguments', args);
+        logger.info('Generate Google Pay Pass with arguments', { template });
 
         const passTemplate = isString(template)
           ? await findTemplateById(logger, template, Boolean(forceReload))
@@ -130,11 +130,7 @@ export const buildGooglePassHandlers = makeHandlers(({ config, storage }: Google
         const redirectTo = `https://pay.google.com/gp/v/save/${token}`;
         logger.info('Generated Google Pay URL', { url: redirectTo });
 
-        if (req.headers['accept'] === 'application/json') {
-          return { token, redirectTo };
-        } else {
-          return response.redirect(redirectTo);
-        }
+        return { token, redirectTo };
       },
     }),
     makeHandler({

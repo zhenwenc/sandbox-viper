@@ -99,27 +99,35 @@ export const PassImageDefinitions = t.partial({
    *
    * The allotted space is 320 x 100 points; in most cases it should be more narrow.
    */
-  logo: PassImageDefinition,
+  'logo': PassImageDefinition,
+  'logo@2x': PassImageDefinition,
+  'logo@3x': PassImageDefinition,
   /**
    * The icon image is displayed when a pass is shown on the lock screen and by apps
    * such as Mail when the pass is attached to an email.
    *
    * The icon should have dimensions of 58 x 58 points.
    */
-  icon: PassImageDefinition,
+  'icon': PassImageDefinition,
+  'icon@2x': PassImageDefinition,
+  'icon@3x': PassImageDefinition,
   /**
    * The strip image strip.png is displayed behind the primary fields. The expected
    * dimensions are 640 x 168-246 points. The allotted space is 640 x 168 points for
    * event tickets; 640 x 220 points for other pass styles with a square barcode on
    * devices with 3.5 inch screens; 640 x 246 for all other uses.
    */
-  strip: PassImageDefinition,
+  'strip': PassImageDefinition,
+  'strip@2x': PassImageDefinition,
+  'strip@3x': PassImageDefinition,
   /**
    * The footer image is displayed near the barcode.
    *
    * The allotted space is 572 x 30 points.
    */
-  footer: PassImageDefinition,
+  'footer': PassImageDefinition,
+  'footer@2x': PassImageDefinition,
+  'footer@3x': PassImageDefinition,
   /**
    * The background image is displayed behind the entire front side of the pass. The
    * expected dimensions are 360 x 440 points. The image is slightly cropped on all
@@ -129,13 +137,17 @@ export const PassImageDefinitions = t.partial({
    * blurring effect will hide the details of the image. This lets you reduce the file
    * size without users noticing the difference.
    */
-  background: PassImageDefinition,
+  'background': PassImageDefinition,
+  'background@2x': PassImageDefinition,
+  'background@3x': PassImageDefinition,
   /**
    * The thumbnail image thumbnail.png is displayed next to the fields on the front
    * side of the pass. The allotted space is 120-180 x 120-180 points. The aspect
    * ratio should be in the range of 2:3 to 3:2 or the image will be cropped.
    */
-  thumbnail: PassImageDefinition,
+  'thumbnail': PassImageDefinition,
+  'thumbnail@2x': PassImageDefinition,
+  'thumbnail@3x': PassImageDefinition,
 });
 
 /**
