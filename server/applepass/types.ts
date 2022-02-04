@@ -184,7 +184,7 @@ export const PassCredentials = t.type({
     wwdr: t.string,
     signerCert: t.string,
     signerKey: t.type({
-      keyFile: t.string,
+      privateKey: t.string,
       passphrase: t.string,
     }),
   }),

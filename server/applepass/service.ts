@@ -46,7 +46,14 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<Pa
       ...assets,
       'pass.json': Buffer.from(JSON.stringify(model)),
     },
-    certificates,
+    certificates: {
+      wwdr: certificates.wwdr,
+      signerCert: certificates.signerCert,
+      signerKey: {
+        keyFile: certificates.signerKey.privateKey,
+        passphrase: certificates.signerKey.passphrase,
+      },
+    },
     overrides: {
       teamIdentifier,
       passTypeIdentifier,

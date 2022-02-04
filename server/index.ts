@@ -37,8 +37,8 @@ export function buildHandler() {
   const googRouter = makeRouter(buildGooglePassHandlers({ config, storage: googStorage }));
 
   router.use('/api/decode', decoRouter.routes(), decoRouter.allowedMethods());
-  router.use('/api/pass/ios', applRouter.routes(), applRouter.allowedMethods());
-  router.use('/api/pass/android', googRouter.routes(), googRouter.allowedMethods());
+  router.use('/api/pass/apple', applRouter.routes(), applRouter.allowedMethods());
+  router.use('/api/pass/google', googRouter.routes(), googRouter.allowedMethods());
 
   // -----------------------------------------------------------------------
 
