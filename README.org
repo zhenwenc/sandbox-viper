@@ -18,26 +18,6 @@
 
 * Installation
 
-** Create a file called =.env.local= in the project's root directory
-
-Follow the [[https://developer.apple.com/documentation/walletpasses/building_a_pass][Apple Developer Guide]] to generate a Signing Certificate.
-
-#+BEGIN_SRC conf
-# Double quote multi-line strings and use the \n for newlines
-# https://github.com/bkeepers/dotenv#multi-line-values
-PASS_IOS_WWDR={{ Apple WWDR CA Certificate PEM }}
-PASS_IOS_SIGNER_CERT={{ Signer Certificate PEM }}
-PASS_IOS_SIGNER_KEY={{ Signer Key PEM }}
-PASS_IOS_SIGNER_KEY_PASS={{ Signer Key Passphrase }}
-
-# Create a Apple Pass Type Identifier
-PASS_IOS_TEAM_ID={{ Apple Team Identifier }}
-PASS_IOS_PASS_TYPE_ID={{ Pass Type Identifier }}
-
-# Create a GCP Service Account and associate it to your merchant account
-GCP_CREDENTIALS={{ Service Account Credentials JSON }}
-#+END_SRC
-
 ** Launch the application locally by running the following command
 
 #+BEGIN_SRC sh :evel no
@@ -48,21 +28,182 @@ yarn install
 PORT=3000 yarn start:dev
 #+END_SRC
 
-** Send a GET request to the server to generate a Sample Wallet Pass
+* Quick Start
+
+** Generate Apple Wallet Pass (=/viper/api/pass/apple=)
+
+Assuming you have created your Apple Pass Type Identifier. Follow the [[https://developer.apple.com/documentation/walletpasses/building_a_pass][Apple Developer Guide]] to generate a Signing Certificate.
+
+#+BEGIN_SRC conf
+# Double quote multi-line strings and use the \n for newlines
+# https://github.com/bkeepers/dotenv#multi-line-values
+APPLE_PASS_WWDR={{ Apple WWDR CA Certificate PEM }}
+APPLE_PASS_SIGNER_CERT={{ Signer Certificate PEM }}
+APPLE_PASS_SIGNER_KEY={{ Signer Key PEM }}
+APPLE_PASS_SIGNER_KEY_PASSPHRASES={{ Signer Key Passphrase }}
+
+# Create a Apple Pass Type Identifier
+APPLE_PASS_TEAM_ID={{ Apple Team Identifier }}
+APPLE_PASS_TYPE_ID={{ Pass Type Identifier }}
+#+END_SRC
+
+Invoke the Apple Pass endpoint with a defined template, which returns the generated =pkpass= file.
+
+#+BEGIN_SRC restclient
+POST https://viper-fredc.vercel.app/viper/api/pass/apple
+Content-Type: application/json
+
+{
+  "barcode": "PREFIX:...",
+  "credentials": {
+    "teamIdentifier": "{{ APPLE_PASS_TEAM_ID }}",
+    "passTypeIdentifier": "{{ APPLE_PASS_TYPE_ID }}",
+    "certificates": {
+      "wwdr": "{{ APPLE_PASS_WWD }}",
+      "signerCert": "{{ APPLE_PASS_SIGNER_CERT }}",
+      "signerKey": {
+        "privateKey": "{{ APPLE_PASS_SIGNER_KEY }}",
+        "passphrase": "{{ APPLE_PASS_SIGNER_KEY_PASSPHRASE }}"
+      }
+    }
+  },
+  "template": {
+    "id": "{{ Unique Identifier }}",
+    "model": {
+      "formatVersion": 1,
+      "organizationName": "Paw Planet",
+      "description": "Paw Planet Coupon",
+      "foregroundColor": "rgb(255, 255, 255)",
+      "backgroundColor": "rgb(206, 140, 53)",
+      "barcode": {
+        "format": "PKBarcodeFormatQR",
+        "messageEncoding": "iso-8859-1",
+        "message": "__PLACEHOLDER__"
+      },
+      "coupon": {
+        "primaryFields": [
+          {
+            "key": "offer",
+            "label": "{{ data.quantity }} premium dog food",
+            "value": "120% off"
+          }
+        ],
+        "auxiliaryFields": [
+          {
+            "key": "expires",
+            "label": "EXPIRES",
+            "value": "{{ date meta.exp 'yyyy-MM-dd'T'HH:mm:ss' 'Pacific/Auckland' }}",
+            "isRelative": true,
+            "dateStyle": "PKDateStyleShort"
+          }
+        ]
+      }
+    },
+    "images": {
+      "icon": {
+        "url": "data:image/png;base64,..."
+      },
+      "logo": {
+        "url": "data:image/png;base64,..."
+      }
+    }
+  },
+  "dynamicData": {
+    "data": {
+      "quantity": 12,
+      "expires": 1640908800000
+    }
+  }
+}
+#+END_SRC
+
+Example of opening the downloaded pkpass file in macOS Pass Viewer
+
 #+BEGIN_SRC ts :results none
 import got from 'got';
 import open from 'open';
-import { URL, URLSearchParams } from 'url';
 import { createWriteStream } from 'fs';
+import { URL, URLSearchParams } from 'url';
 
-(async () => {
-  const qs = new URLSearchParams({
-    templateId: "dcc",
-    barcode: "HC1:..."
-  });
-  const stream = got(`http://localhost:3000/viper/pass/ios?${qs}`, { isStream: true });
-  const fileName = "/tmp/viper-pass.pkpass";
-  stream.pipe(createWriteStream(fileName));
-  stream.on('end', () => open(fileName)) // Opens the downloaded file in Pass Viewer
-})();
+const json = {/* ... */} // request body
+
+const stream = got(`https://viper-fredc.vercel.app/viper/api/pass/apple`, { json, isStream: true });
+const fileName = "/tmp/viper-pass.pkpass";
+stream.pipe(createWriteStream(fileName));
+stream.on('end', () => open(fileName)) // Opens the downloaded file in Pass Viewer
+#+END_SRC
+
+** Generate Google Pay Pass (=/viper/api/pass/google=)
+
+Assuming you have created a GCP Service Account and associate it to your merchant account.
+
+#+BEGIN_SRC conf
+# Double quote multi-line strings and use the \n for newlines
+# https://github.com/bkeepers/dotenv#multi-line-values
+
+GOOGLE_PASS_ISSUER_ID={{ Issuer Account ID }}
+GOOGLE_PASS_SERVICE_ACCOUNT_CLIENT_EMAIL={{ Client Email }}
+GOOGLE_PASS_SERVICE_ACCOUNT_PRIVATE_KEY={{ Client Secret }}
+#+END_SRC
+
+Invoke the Google Pay Pass endpoint with a defined template, which returns a redirect URL to Google Pay service. Open the URL on Android phones with Google Pay service to claim the generated pass.
+
+#+BEGIN_SRC restclient
+POST https://viper-fredc.vercel.app/viper/api/pass/google
+Content-Type: application/json
+
+{
+  "barcode": "PREFIX:...",
+  "credentials": {
+    "teamIdentifier": "{{ APPLE_PASS_TEAM_ID }}",
+    "passTypeIdentifier": "{{ APPLE_PASS_TYPE_ID }}",
+    "certificates": {
+      "wwdr": "{{ APPLE_PASS_WWD }}",
+      "signerCert": "{{ APPLE_PASS_SIGNER_CERT }}",
+      "signerKey": {
+        "privateKey": "{{ APPLE_PASS_SIGNER_KEY }}",
+        "passphrase": "{{ APPLE_PASS_SIGNER_KEY_PASSPHRASE }}"
+      }
+    }
+  },
+  "template": {
+    "id": "{{ Unique Identifier }}",
+    "description": "Paw Planet Coupon",
+    "objectType": "offerObject",
+    "objectTemplate": {
+      "id": "{{ meta.id }}",
+      "issuerId": "{{ meta.issuerId }}",
+      "title": "Paw Planet Coupon",
+      "cardColorHex": "#E6E5F0",
+      "expiration": "{{ date meta.exp 'yyyy-MM-dd'T'HH:mm:ss' 'Pacific/Auckland' }}",
+      "validFrom": "{{  date meta.iat 'yyyy-MM-dd'T'HH:mm:ss' 'Pacific/Auckland' }}",
+      "dateFormat": "DATE_YEAR",
+      "logo": {
+        "sourceUri": {
+          "description": "Paw Planet Logo",
+          "uri": "https://example.com/TEST.png"
+        }
+      },
+      "barcode": {
+        "type": "qrCode",
+        "value": "{{ meta.barcode }}"
+      },
+      "textModulesData": [
+        {
+          "header": "Offer details",
+          "body": "{{ data.quantity }} premium dog food"
+        }
+      ]
+    }
+  }
+  "dynamicData": {
+    "meta": {
+      "exp": 1640908800000,
+      "exp": 1609459200000
+    },
+    "data": {
+      "quantity": 12
+    }
+  }
+}
 #+END_SRC
