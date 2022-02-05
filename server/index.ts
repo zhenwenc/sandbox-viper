@@ -5,6 +5,7 @@ import { Logger } from '@navch/common';
 import { makeRouter, middlewares, setRequestContext } from '@navch/http';
 
 import { AppConfig } from './config';
+import { buildDecoders } from './decoder/service';
 import { buildInMemoryStorage } from './storage';
 import { buildDecoderHandlers } from './decoder/handler';
 import { buildApplePassHandlers } from './applepass/handler';
@@ -16,6 +17,8 @@ export function buildHandler() {
 
   const applStorage = buildInMemoryStorage();
   const googStorage = buildInMemoryStorage();
+
+  const decoders = buildDecoders(logger);
 
   const requestLogger = morgan('dev', {
     stream: { write: compose(logger.debug, trim) },
@@ -32,9 +35,9 @@ export function buildHandler() {
   // interested in some of the functionalities it provides. Therefore, we don't
   // enforce you to provide all environment variables to start with.
 
-  const decoRouter = makeRouter(buildDecoderHandlers());
-  const applRouter = makeRouter(buildApplePassHandlers({ config, storage: applStorage }));
-  const googRouter = makeRouter(buildGooglePassHandlers({ config, storage: googStorage }));
+  const decoRouter = makeRouter(buildDecoderHandlers({ decoders }));
+  const applRouter = makeRouter(buildApplePassHandlers({ config, storage: applStorage, decoders }));
+  const googRouter = makeRouter(buildGooglePassHandlers({ config, storage: googStorage, decoders }));
 
   router.use('/api/decode', decoRouter.routes(), decoRouter.allowedMethods());
   router.use('/api/pass/apple', applRouter.routes(), applRouter.allowedMethods());

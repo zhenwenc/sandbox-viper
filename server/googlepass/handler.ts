@@ -9,16 +9,18 @@ import { makeHandler, makeHandlers } from '@navch/http';
 import { createWalletPass } from './service';
 import { Storage } from '../storage';
 import { AppConfig } from '../config';
+import { Decoder } from '../decoder/types';
 import { decode } from '../decoder/service';
 import { getLocalTemplates } from '../template/service';
 import { PassCredentials, PassTemplateDefinition } from './types';
 
-export type GooglePassOptions = {
+export type Options = {
   readonly config: AppConfig;
   readonly storage: Storage;
+  readonly decoders: Decoder[];
 };
 
-export const buildGooglePassHandlers = makeHandlers(({ config, storage }: GooglePassOptions) => {
+export const buildGooglePassHandlers = makeHandlers(({ config, storage, decoders }: Options) => {
   // Refresh the local Wallet Pass templates if needed
   const refreshPassTemplateCache = async (logger: Logger, forceReload = false) => {
     if (forceReload || storage.isEmpty()) {
@@ -112,7 +114,7 @@ export const buildGooglePassHandlers = makeHandlers(({ config, storage }: Google
           : template;
 
         // Attempt to obtain the template data from the barcode message
-        const decoded = await decode(barcode, logger);
+        const decoded = await decode(decoders, barcode);
 
         // Merge template data with request-scoped dynamic data if provided
         const payload = dynamicData ? R.mergeDeepRight(decoded, dynamicData) : decoded;

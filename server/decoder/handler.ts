@@ -2,9 +2,14 @@ import * as t from 'io-ts';
 
 import { makeHandler, makeHandlers } from '@navch/http';
 
+import { Decoder } from './types';
 import { decode } from '../decoder/service';
 
-export const buildDecoderHandlers = makeHandlers(() => {
+export type Options = {
+  readonly decoders: Decoder[];
+};
+
+export const buildDecoderHandlers = makeHandlers(({ decoders }: Options) => {
   return [
     makeHandler({
       route: '/',
@@ -12,7 +17,7 @@ export const buildDecoderHandlers = makeHandlers(() => {
       input: { query: t.type({ barcode: t.string }) },
       handle: async (_1, { barcode }, { logger }) => {
         logger.info('Decode barcode payload', { barcode });
-        return await decode(barcode, logger);
+        return await decode(decoders, barcode);
       },
     }),
     makeHandler({
@@ -21,7 +26,7 @@ export const buildDecoderHandlers = makeHandlers(() => {
       input: { body: t.type({ barcode: t.string }) },
       handle: async (_1, { barcode }, { logger }) => {
         logger.info('Decode barcode payload', { barcode });
-        return await decode(barcode, logger);
+        return await decode(decoders, barcode);
       },
     }),
   ];

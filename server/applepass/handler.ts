@@ -10,16 +10,18 @@ import { Response, makeHandler, makeHandlers } from '@navch/http';
 import { Storage } from '../storage';
 import { AppConfig } from '../config';
 import { getLocalTemplates } from '../template/service';
-import { PassTemplateDefinition, PassCredentials } from './types';
+import { Decoder } from '../decoder/types';
 import { decode } from '../decoder/service';
+import { PassTemplateDefinition, PassCredentials } from './types';
 import { createWalletPass } from './service';
 
-export type ApplePassOptions = {
+export type Options = {
   readonly config: AppConfig;
   readonly storage: Storage;
+  readonly decoders: Decoder[];
 };
 
-export const buildApplePassHandlers = makeHandlers(({ config, storage }: ApplePassOptions) => {
+export const buildApplePassHandlers = makeHandlers(({ config, storage, decoders }: Options) => {
   // Refresh the local Wallet Pass templates if needed
   const refreshPassTemplateCache = async (logger: Logger, forceReload = false) => {
     if (forceReload || storage.isEmpty()) {
@@ -132,7 +134,7 @@ export const buildApplePassHandlers = makeHandlers(({ config, storage }: ApplePa
           : template;
 
         // Attempt to obtain the template data from the barcode message
-        const decoded = await decode(barcode, logger);
+        const decoded = await decode(decoders, barcode);
 
         // Merge template data with request-scoped dynamic data if provided
         const payload = dynamicData ? R.mergeDeepRight(decoded, dynamicData) : decoded;
