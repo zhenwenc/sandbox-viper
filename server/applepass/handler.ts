@@ -10,6 +10,7 @@ import { Response, makeHandler, makeHandlers } from '@navch/http';
 import { Storage } from '../storage';
 import { AppConfig } from '../config';
 import { getLocalTemplates } from '../template/service';
+import { encrypt, decrypt } from '../secret';
 import { Decoder } from '../decoder/types';
 import { decode } from '../decoder/service';
 import { PassTemplateDefinition, PassCredentials } from './types';
@@ -99,7 +100,7 @@ export const buildApplePassHandlers = makeHandlers(({ config, storage, decoders 
            *
            * TODO maybe support JWKs
            */
-          credentials: PassCredentials,
+          credentials: t.union([t.string, PassCredentials]),
           /**
            * The value for `barcode.message` field in `pass.json`.
            */
@@ -127,11 +128,16 @@ export const buildApplePassHandlers = makeHandlers(({ config, storage, decoders 
       },
       handle: async (_1, args, { response, logger }) => {
         const { template, credentials, barcode, dynamicData, forceReload } = args;
+        const { getServerCerts } = config;
         logger.info('Generate Apple Wallet Pass with arguments', { template });
 
         const passTemplate: PassTemplateDefinition = isString(template)
           ? await findTemplateById(logger, template, Boolean(forceReload))
           : template;
+
+        const passCredentials: PassCredentials = isString(credentials)
+          ? await decrypt(await getServerCerts(), credentials, PassCredentials)
+          : credentials;
 
         // Attempt to obtain the template data from the barcode message
         const decoded = await decode(decoders, barcode);
@@ -144,7 +150,7 @@ export const buildApplePassHandlers = makeHandlers(({ config, storage, decoders 
           barcode,
           payload,
           template: passTemplate,
-          credentials,
+          credentials: passCredentials,
         });
         sendWalletPass(logger, response, pass);
       },
@@ -165,6 +171,29 @@ export const buildApplePassHandlers = makeHandlers(({ config, storage, decoders 
           templateId: item.id,
           description: item.model?.description,
         }));
+      },
+    }),
+    makeHandler({
+      route: '/secrets',
+      method: 'POST',
+      description: markdown`
+        Encode the credentials in an encrypted message which can be used to invoke the pass
+        generation endpoint.
+      `,
+      input: {
+        body: t.type({
+          /**
+           * The credentials to sign the generated pass bundle. See the pass generation
+           * endpoint for details.
+           */
+          credentials: PassCredentials,
+        }),
+      },
+      handle: async (_1, { credentials }, { logger }) => {
+        logger.debug('Encrypt Apple Wallet Pass credentials');
+        const secret = await config.getServerCerts();
+        const result = await encrypt(secret, credentials);
+        return { data: result };
       },
     }),
   ];

@@ -1,3 +1,5 @@
+import cbor from 'cbor';
+import base32 from 'hi-base32';
 import { inflate } from 'pako';
 import { stringify } from 'uuid';
 
@@ -21,8 +23,6 @@ export class NZCPDecoder implements Decoder {
   // https://mattrglobal.github.io/nzcp/qvnNK89kiJRoEindxA3U
   async decode(input: string): Promise<DecodeResult> {
     this.logger.debug('Decoding NZCP payload', { input });
-    const cbor = require('cbor');
-    const base32 = require('hi-base32');
 
     const payload = input.match(NZCP_PATTERN)?.[1];
     if (!payload) {
@@ -36,7 +36,7 @@ export class NZCPDecoder implements Decoder {
         return base32.decode.asBytes(data);
       },
       // Decompress COSE
-      async (buffer: Buffer) => {
+      async (buffer: number[]) => {
         // Zlib magic headers:
         //
         // 78 01 - No Compression/low

@@ -9,6 +9,7 @@ import { makeHandler, makeHandlers } from '@navch/http';
 import { createWalletPass } from './service';
 import { Storage } from '../storage';
 import { AppConfig } from '../config';
+import { encrypt, decrypt } from '../secret';
 import { Decoder } from '../decoder/types';
 import { decode } from '../decoder/service';
 import { getLocalTemplates } from '../template/service';
@@ -59,7 +60,7 @@ export const buildGooglePassHandlers = makeHandlers(({ config, storage, decoders
            *
            * TODO maybe support JWKs
            */
-          credentials: PassCredentials,
+          credentials: t.union([t.string, PassCredentials]),
           /**
            * The value for `barcode.value` field in the created `WalletObject`.
            *
@@ -107,11 +108,16 @@ export const buildGooglePassHandlers = makeHandlers(({ config, storage, decoders
       },
       handle: async (_1, args, { logger }) => {
         const { template, credentials, barcode, dynamicData, mode, forceReload, forceUpdate } = args;
+        const { getServerCerts } = config;
         logger.info('Generate Google Pay Pass with arguments', { template });
 
         const passTemplate = isString(template)
           ? await findTemplateById(logger, template, Boolean(forceReload))
           : template;
+
+        const passCredentials: PassCredentials = isString(credentials)
+          ? await decrypt(await getServerCerts(), credentials, PassCredentials)
+          : credentials;
 
         // Attempt to obtain the template data from the barcode message
         const decoded = await decode(decoders, barcode);
@@ -122,7 +128,7 @@ export const buildGooglePassHandlers = makeHandlers(({ config, storage, decoders
         const token = await createWalletPass({
           logger,
           template: passTemplate,
-          credentials,
+          credentials: passCredentials,
           barcode,
           payload,
           useSkinnyToken: mode === 'skinny',
@@ -151,6 +157,29 @@ export const buildGooglePassHandlers = makeHandlers(({ config, storage, decoders
           templateId: item.id,
           description: item.description,
         }));
+      },
+    }),
+    makeHandler({
+      route: '/secrets',
+      method: 'POST',
+      description: markdown`
+        Encode the credentials in an encrypted message which can be used to invoke the pass
+        generation endpoint.
+      `,
+      input: {
+        body: t.type({
+          /**
+           * The credentials to sign the generated pass token. See the pass generation
+           * endpoint for details.
+           */
+          credentials: PassCredentials,
+        }),
+      },
+      handle: async (_1, { credentials }, { logger }) => {
+        logger.debug('Encrypt Google Pay Pass credentials');
+        const secret = await config.getServerCerts();
+        const result = await encrypt(secret, credentials);
+        return { data: result };
       },
     }),
   ];

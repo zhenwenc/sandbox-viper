@@ -1,4 +1,5 @@
 import got from 'got';
+import cbor from 'cbor';
 import memoize from 'memoizee';
 import { path } from 'ramda';
 import { map, fromPairs } from 'lodash';
@@ -115,8 +116,8 @@ export class HCERTDecoder implements Decoder {
   // https://github.com/ehn-dcc-development/ehn-sign-verify-javascript-trivial
   async decode(input: string): Promise<DecodeResult> {
     this.logger.debug('Decoding HCERT payload', { input });
-    const cbor = require('cbor');
-    const base45 = require('base45-js');
+
+    const base45 = require('base45-js'); // missing type definitions
 
     const payload = input.match(HCERT_PATTERN)?.[1];
     if (!payload) {
