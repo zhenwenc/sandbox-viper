@@ -1,3 +1,4 @@
+import * as t from 'io-ts';
 import R from 'ramda';
 import jwt from 'jsonwebtoken';
 import pluralize from 'pluralize';
@@ -76,23 +77,32 @@ export type CreateWalletClassRequest = {
   readonly client: GoogleAuth;
   readonly classType: WalletClassType;
   readonly classInput: WalletClass;
-  readonly forceUpdate?: boolean;
+  readonly forceUpdate: boolean;
 };
 export async function createWalletClass(req: CreateWalletClassRequest): Promise<WalletClass> {
   const { logger, client, classType, classInput, forceUpdate } = req;
   validate(classType, WalletClassType);
 
+  const classId = validate(classInput.id, t.string);
+  const payload = JSON.stringify({
+    ...classInput,
+    reviewStatus: 'underReview', // cannot be 'approved'
+    review: {
+      comments: 'Auto approval by system',
+    },
+  });
+
   return await recoverP(
     // Return the previously created wallet class if already exists
-    getWalletClass({ logger, client, classType, classId: classInput.id }).then(async record => {
+    getWalletClass({ logger, client, classType, classId }).then(async record => {
       if (!forceUpdate) return record;
 
-      logger.debug('Update Google Wallet Class', { classType, classId: classInput.id });
+      logger.debug('Update Google Wallet Class', { classType, payload });
       const { data } = await client.request({
         method: 'PUT',
         url: `https://walletobjects.googleapis.com/walletobjects/v1/${classType}/${classInput.id}`,
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify(classInput),
+        body: payload,
       });
       return data;
     }),
@@ -100,12 +110,12 @@ export async function createWalletClass(req: CreateWalletClassRequest): Promise<
     NotFoundError,
     // Then create an new class with the given definition
     async function doCreate() {
-      logger.debug('Create Google Wallet Class', { classType, classId: classInput.id });
+      logger.debug('Create Google Wallet Class', { classType, payload });
       const { data } = await client.request({
         method: 'POST',
         url: `https://walletobjects.googleapis.com/walletobjects/v1/${classType}`,
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify(classInput),
+        body: payload,
       });
       return data;
     }
@@ -229,7 +239,7 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<st
   const { id, classType, classTemplate, objectType, objectTemplate } = template;
   const { issuerId } = credentials;
 
-  logger.debug('Generate Google Pay Pass with decoded payload', payload);
+  logger.debug('Generate Google Pay Pass with decoded payload', { payload, useSkinnyToken });
 
   // Construct the PayPass class with the template if provided
   //
@@ -255,25 +265,32 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<st
     return resolveTemplateValue(objectFields, key);
   });
 
-  // Generate JWT token for "Save To Android Pay" button
-  //
-  // https://developers.google.com/pay/passes/guides/implement-the-api/save-passes-to-google-pay
-  if (classType && useSkinnyToken) {
-    const client = new GoogleAuth({
-      credentials: {
-        client_email: credentials.certificates.clientEmail,
-        private_key: credentials.certificates.clientSecret,
-      },
-      scopes: ['https://www.googleapis.com/auth/wallet_object.issuer'],
-    });
+  const client = new GoogleAuth({
+    credentials: {
+      client_email: credentials.certificates.clientEmail,
+      private_key: credentials.certificates.clientSecret,
+    },
+    scopes: ['https://www.googleapis.com/auth/wallet_object.issuer'],
+  });
 
+  // Creates the defined `WalletClass`, which is always required for both API flow. The only
+  // exception is COVID Card.
+  //
+  // https://developers.google.com/pay/passes/guides/introduction/typical-api-flows
+  if (classType && classTemplate) {
     await createWalletClass({
       logger,
       client,
       classType,
       classInput: classRecord,
-      forceUpdate: Boolean(forceUpdate),
+      forceUpdate,
     });
+  }
+
+  // Generate JWT token for "Save To Android Pay" button
+  //
+  // https://developers.google.com/pay/passes/guides/implement-the-api/save-passes-to-google-pay
+  if (classType && classTemplate && useSkinnyToken) {
     const walletObject = await createWalletObject({
       logger,
       client,

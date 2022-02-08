@@ -123,7 +123,7 @@ export const buildApplePassHandlers = makeHandlers(({ config, storage, decoders 
            *
            * You can set this parameter to any truthy value to force refreshing.
            */
-          forceReload: t.union([t.string, t.undefined]),
+          forceReload: t.union([t.boolean, t.undefined]),
         }),
       },
       handle: async (_1, args, { response, logger }) => {

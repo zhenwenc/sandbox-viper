@@ -153,7 +153,7 @@ export class HCERTDecoder implements Decoder {
         await this.validateOrThrow(hcert);
 
         const meta = {
-          iss: cborData.get(1) * 1000, // Issuer, ISO 3166-1 alpha-2
+          iss: cborData.get(1), // Issuer, ISO 3166-1 alpha-2
           iat: cborData.get(6) * 1000, // Issued At
           exp: cborData.get(4) * 1000, // Expiration Time
           kind: hcert.v ? 'Vaccination' : hcert.t ? 'Test' : 'Recovery',

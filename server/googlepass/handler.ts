@@ -95,7 +95,7 @@ export const buildGooglePassHandlers = makeHandlers(({ config, storage, decoders
            *
            * You can set this parameter to any truthy value to force refreshing.
            */
-          forceReload: t.union([t.string, t.undefined]),
+          forceReload: t.union([t.boolean, t.undefined]),
           /**
            * The inserted PayPass class will be reused by consecutive requests, which is
            * not ideal when you're frequently modifying the templates during development
@@ -103,7 +103,7 @@ export const buildGooglePassHandlers = makeHandlers(({ config, storage, decoders
            *
            * You can set this parameter to any truthy value to force updating the class.
            */
-          forceUpdate: t.union([t.string, t.undefined]),
+          forceUpdate: t.union([t.boolean, t.undefined]),
         }),
       },
       handle: async (_1, args, { logger }) => {
@@ -131,8 +131,8 @@ export const buildGooglePassHandlers = makeHandlers(({ config, storage, decoders
           credentials: passCredentials,
           barcode,
           payload,
-          useSkinnyToken: mode === 'skinny',
           forceUpdate: Boolean(forceUpdate),
+          useSkinnyToken: mode === 'skinny' && Boolean(passTemplate.classTemplate),
         });
 
         const redirectTo = `https://pay.google.com/gp/v/save/${token}`;

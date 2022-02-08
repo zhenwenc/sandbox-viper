@@ -24,7 +24,7 @@ export const WalletClassType = t.union([
 export type WalletClass = t.TypeOf<typeof WalletClass>;
 export const WalletClass = t.intersection([
   t.record(t.string, t.unknown), // allow unknown properties
-  t.type({
+  t.partial({
     /**
      * An unique identifier for this Google Pay Wallet Pass class.
      */
@@ -37,12 +37,12 @@ export const WalletClass = t.intersection([
      * You should keep this field to `draft` when the class is under development. A draft
      * class cannot be used to create any object.
      *
-     * You should set this field to underReview when you believe the class is ready for
+     * You should set this field to `underReview` when you believe the class is ready for
      * use. The platform will automatically set this field to `approved` and it can be
      * immediately used to create or migrate objects.
      *
      * When updating an already `approved` class you should keep setting this field to
-     * `underReview`.
+     * be `underReview`.
      */
     reviewStatus: t.union([t.literal('draft'), t.literal('approved'), t.literal('underReview')]),
   }),
