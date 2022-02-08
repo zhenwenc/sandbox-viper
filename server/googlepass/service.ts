@@ -312,7 +312,10 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<st
       issuerKey: credentials.certificates.clientSecret,
       payload: {
         [pluralize(objectType)]: [objectRecord],
-        ...(classType && { [pluralize(classType)]: [classRecord] }),
+        //
+        // TODO Why embed the class definition in the token?
+        //
+        // ...(classType && { [pluralize(classType)]: [classRecord] }),
       },
     });
   }

@@ -21,6 +21,13 @@ export const WalletClassType = t.union([
   t.literal('transitClass'),
 ]);
 
+/**
+ * The Google Pay Passes API uses the concept of a `class` to allow management of data
+ * common across all users, similar to the concept of templating.
+ *
+ * Each pass vertical has its own respective object and class, we don't capture all the
+ * different structure strictly here, but only the necessary fields for the application.
+ */
 export type WalletClass = t.TypeOf<typeof WalletClass>;
 export const WalletClass = t.intersection([
   t.record(t.string, t.unknown), // allow unknown properties
