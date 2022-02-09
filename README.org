@@ -50,7 +50,7 @@ APPLE_PASS_TYPE_ID={{ Pass Type Identifier }}
 Invoke the Apple Pass endpoint with a defined template, which returns the generated =pkpass= file.
 
 #+BEGIN_SRC restclient
-POST https://viper-fredc.vercel.app/viper/api/pass/apple
+POST https://sandbox-viper.vercel.app/viper/api/pass/apple
 Content-Type: application/json
 
 {
@@ -127,7 +127,7 @@ import { URL, URLSearchParams } from 'url';
 
 const json = {/* ... */} // request body
 
-const stream = got(`https://viper-fredc.vercel.app/viper/api/pass/apple`, { json, isStream: true });
+const stream = got(`https://sandbox-viper.vercel.app/viper/api/pass/apple`, { json, isStream: true });
 const fileName = "/tmp/viper-pass.pkpass";
 stream.pipe(createWriteStream(fileName));
 stream.on('end', () => open(fileName)) // Opens the downloaded file in Pass Viewer
@@ -149,7 +149,7 @@ GOOGLE_PASS_SERVICE_ACCOUNT_PRIVATE_KEY={{ Client Secret }}
 Invoke the Google Pay Pass endpoint with a defined template, which returns a redirect URL to Google Pay service. Open the URL on Android phones with Google Pay service to claim the generated pass.
 
 #+BEGIN_SRC restclient
-POST https://viper-fredc.vercel.app/viper/api/pass/google
+POST https://sandbox-viper.vercel.app/viper/api/pass/google
 Content-Type: application/json
 
 {
