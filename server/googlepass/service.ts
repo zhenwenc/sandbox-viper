@@ -11,30 +11,26 @@ import { Logger, NotFoundError, recoverP } from '@navch/common';
 import { validate } from '@navch/codec';
 
 import { resolveTemplateValue } from '../template/renderer';
-import {
-  WalletObject,
-  WalletClass,
-  WalletClassType,
-  WalletObjectType,
-  PassTemplateDefinition,
-  PassCredentials,
-} from './types';
+import { WalletObject, WalletClass, PassStyle, PassTemplateDefinition, PassCredentials } from './types';
+
+const toClassType = (style: PassStyle) => `${style}Class`;
+const toObjectType = (style: PassStyle) => `${style}Object`;
 
 export type ListWalletClassRequest = {
   readonly logger: Logger;
   readonly client: GoogleAuth;
   readonly issuerId: string;
-  readonly objectType: WalletClassType;
+  readonly style: PassStyle;
 };
 export async function listWalletClass(req: ListWalletClassRequest): Promise<WalletClass[]> {
-  const { logger, client, issuerId, objectType } = req;
-  logger.debug(`List all Google Wallet Classes`, { issuerId });
+  const { logger, client, issuerId, style } = req;
+  logger.debug(`List all Google Wallet Classes`, { style, issuerId });
 
   try {
     const { data } = await client.request({
       method: 'GET',
       params: { issuerId },
-      url: `https://walletobjects.googleapis.com/walletobjects/v1/${objectType}`,
+      url: `https://walletobjects.googleapis.com/walletobjects/v1/${toObjectType(style)}`,
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
     });
     return data;
@@ -49,18 +45,17 @@ export async function listWalletClass(req: ListWalletClassRequest): Promise<Wall
 export type GetWalletClassRequest = {
   readonly logger: Logger;
   readonly client: GoogleAuth;
-  readonly classType: WalletClassType;
+  readonly style: PassStyle;
   readonly classId: string;
 };
 export async function getWalletClass(req: GetWalletClassRequest): Promise<WalletClass> {
-  const { logger, client, classType, classId } = req;
-  logger.debug(`Fetch Google Wallet Class`, { classType, classId });
-  validate(classType, WalletClassType);
+  const { logger, client, style, classId } = req;
+  logger.debug(`Fetch Google Wallet Class`, { style, classId });
 
   try {
     const { data } = await client.request({
       method: 'GET',
-      url: `https://walletobjects.googleapis.com/walletobjects/v1/${classType}/${classId}`,
+      url: `https://walletobjects.googleapis.com/walletobjects/v1/${toClassType(style)}/${classId}`,
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
     });
     return data;
@@ -75,13 +70,12 @@ export async function getWalletClass(req: GetWalletClassRequest): Promise<Wallet
 export type CreateWalletClassRequest = {
   readonly logger: Logger;
   readonly client: GoogleAuth;
-  readonly classType: WalletClassType;
+  readonly style: PassStyle;
   readonly classInput: WalletClass;
   readonly forceUpdate: boolean;
 };
 export async function createWalletClass(req: CreateWalletClassRequest): Promise<WalletClass> {
-  const { logger, client, classType, classInput, forceUpdate } = req;
-  validate(classType, WalletClassType);
+  const { logger, client, style, classInput, forceUpdate } = req;
 
   const classId = validate(classInput.id, t.string);
   const payload = JSON.stringify({
@@ -94,13 +88,13 @@ export async function createWalletClass(req: CreateWalletClassRequest): Promise<
 
   return await recoverP(
     // Return the previously created wallet class if already exists
-    getWalletClass({ logger, client, classType, classId }).then(async record => {
+    getWalletClass({ logger, client, style, classId }).then(async record => {
       if (!forceUpdate) return record;
 
-      logger.debug('Update Google Wallet Class', { classType, payload });
+      logger.debug('Update Google Wallet Class', { style, payload });
       const { data } = await client.request({
         method: 'PUT',
-        url: `https://walletobjects.googleapis.com/walletobjects/v1/${classType}/${classInput.id}`,
+        url: `https://walletobjects.googleapis.com/walletobjects/v1/${toClassType(style)}/${classInput.id}`,
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: payload,
       });
@@ -110,10 +104,10 @@ export async function createWalletClass(req: CreateWalletClassRequest): Promise<
     NotFoundError,
     // Then create an new class with the given definition
     async function doCreate() {
-      logger.debug('Create Google Wallet Class', { classType, payload });
+      logger.debug('Create Google Wallet Class', { style, payload });
       const { data } = await client.request({
         method: 'POST',
-        url: `https://walletobjects.googleapis.com/walletobjects/v1/${classType}`,
+        url: `https://walletobjects.googleapis.com/walletobjects/v1/${toClassType(style)}`,
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: payload,
       });
@@ -125,18 +119,17 @@ export async function createWalletClass(req: CreateWalletClassRequest): Promise<
 export type GetWalletObjectRequest = {
   readonly logger: Logger;
   readonly client: GoogleAuth;
-  readonly objectType: WalletObjectType;
+  readonly style: PassStyle;
   readonly objectId: string;
 };
 export async function getWalletObject(req: GetWalletObjectRequest): Promise<WalletObject> {
-  const { logger, client, objectType, objectId } = req;
-  logger.debug(`Fetch Google Wallet Object`, { objectType, objectId });
-  validate(objectType, WalletObjectType);
+  const { logger, client, style, objectId } = req;
+  logger.debug(`Fetch Google Wallet Object`, { style, objectId });
 
   try {
     const { data } = await client.request({
       method: 'GET',
-      url: `https://walletobjects.googleapis.com/walletobjects/v1/${objectType}/${objectId}`,
+      url: `https://walletobjects.googleapis.com/walletobjects/v1/${toObjectType(style)}/${objectId}`,
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
     });
     return data;
@@ -151,24 +144,23 @@ export async function getWalletObject(req: GetWalletObjectRequest): Promise<Wall
 export type CreateWalletObjectRequest = {
   readonly logger: Logger;
   readonly client: GoogleAuth;
-  readonly objectType: WalletObjectType;
+  readonly style: PassStyle;
   readonly objectInput: WalletObject;
 };
 export async function createWalletObject(req: CreateWalletObjectRequest): Promise<WalletObject> {
-  const { logger, client, objectType, objectInput } = req;
-  validate(objectType, WalletObjectType);
+  const { logger, client, style, objectInput } = req;
 
   return await recoverP(
     // Return the previously created wallet object if already exists
-    getWalletObject({ logger, client, objectType, objectId: objectInput.id }),
+    getWalletObject({ logger, client, style, objectId: objectInput.id }),
     // If no such wallet object found with the given ID
     NotFoundError,
     // Then create an new object with the given payload
     async function doCreate() {
-      logger.debug('Create Google Wallet Object', { objectType, objectId: objectInput.id });
+      logger.debug('Create Google Wallet Object', { style, objectId: objectInput.id });
       const { data } = await client.request({
         method: 'POST',
-        url: `https://walletobjects.googleapis.com/walletobjects/v1/${objectType}`,
+        url: `https://walletobjects.googleapis.com/walletobjects/v1/${toObjectType(style)}`,
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify(objectInput),
       });
@@ -236,7 +228,7 @@ export type CreateWalletPassRequest = {
 };
 export async function createWalletPass(req: CreateWalletPassRequest): Promise<string> {
   const { logger, template, credentials, barcode, payload, forceUpdate, useSkinnyToken } = req;
-  const { id, classType, classTemplate, objectType, objectTemplate } = template;
+  const { id, style, classTemplate, objectTemplate } = template;
   const { issuerId } = credentials;
 
   logger.debug('Generate Google Pay Pass with decoded payload', { payload, useSkinnyToken });
@@ -277,11 +269,11 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<st
   // exception is COVID Card.
   //
   // https://developers.google.com/pay/passes/guides/introduction/typical-api-flows
-  if (classType && classTemplate) {
+  if (classTemplate) {
     await createWalletClass({
       logger,
       client,
-      classType,
+      style,
       classInput: classRecord,
       forceUpdate,
     });
@@ -290,11 +282,11 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<st
   // Generate JWT token for "Save To Android Pay" button
   //
   // https://developers.google.com/pay/passes/guides/implement-the-api/save-passes-to-google-pay
-  if (classType && classTemplate && useSkinnyToken) {
+  if (classTemplate && useSkinnyToken) {
     const walletObject = await createWalletObject({
       logger,
       client,
-      objectType,
+      style,
       objectInput: { ...objectRecord, classId: classRecord.id },
     });
     return await signPayPassToken({
@@ -302,7 +294,7 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<st
       issuer: credentials.certificates.clientEmail,
       issuerKey: credentials.certificates.clientSecret,
       payload: {
-        [pluralize(objectType)]: [{ id: walletObject.id }],
+        [pluralize(toObjectType(style))]: [{ id: walletObject.id }],
       },
     });
   } else {
@@ -311,7 +303,7 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<st
       issuer: credentials.certificates.clientEmail,
       issuerKey: credentials.certificates.clientSecret,
       payload: {
-        [pluralize(objectType)]: [objectRecord],
+        [pluralize(toObjectType(style))]: [objectRecord],
         //
         // TODO Why embed the class definition in the token?
         //

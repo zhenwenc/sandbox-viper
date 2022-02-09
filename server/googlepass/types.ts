@@ -1,24 +1,14 @@
 import * as t from 'io-ts';
 
-export type WalletObjectType = t.TypeOf<typeof WalletObjectType>;
-export const WalletObjectType = t.union([
-  t.literal('covidCardObject'),
-  t.literal('eventTicketObject'),
-  t.literal('flightObject'),
-  t.literal('giftCardObject'),
-  t.literal('loyaltyObject'),
-  t.literal('offerObject'),
-  t.literal('transitObject'),
-]);
-
-export type WalletClassType = t.TypeOf<typeof WalletClassType>;
-export const WalletClassType = t.union([
-  t.literal('eventTicketClass'),
-  t.literal('flightClass'),
-  t.literal('giftCardClass'),
-  t.literal('loyaltyClass'),
-  t.literal('offerClass'),
-  t.literal('transitClass'),
+export type PassStyle = t.TypeOf<typeof PassStyle>;
+export const PassStyle = t.union([
+  t.literal('covidCard'),
+  t.literal('eventTicket'),
+  t.literal('flight'),
+  t.literal('giftCard'),
+  t.literal('loyalty'),
+  t.literal('offer'),
+  t.literal('transit'),
 ]);
 
 /**
@@ -98,9 +88,23 @@ export const PassTemplateDefinition = t.type({
    * Brief description of the template, used for the companion GUI tool.
    */
   description: t.string,
-  classType: t.union([WalletClassType, t.undefined]),
+  /**
+   * Pass template in Google Pay Passes' concept. The corresponding `Class` and `Object`
+   * keywords will be constructed based on the `style`.
+   *
+   * https://developers.google.com/pay/passes/guides/pass-verticals/pass-template
+   */
+  style: PassStyle,
+  /**
+   * An optional WalletClass definition, supports `Handlebars` syntax with macros.
+   * This is required for skinny API flow.
+   */
   classTemplate: t.union([WalletClass, t.undefined]),
-  objectType: WalletObjectType,
+  /**
+   * The WalletObject definition, supports `Handlebars` syntax with macros.
+   *
+   * @see {@link src/template/renderer.ts}
+   */
   objectTemplate: WalletObject,
 });
 
@@ -109,7 +113,7 @@ export const PassTemplateDefinition = t.type({
  * enable Google Pay API for "skinny JWT token".
  *
  * ```
- * static gcpCredentialsSchema = t.type({
+ * const GCP_CREDENTIALS_SCHEMA = t.type({
  *   type: t.literal('service_account'),
  *   project_id: t.string,
  *   private_key: t.string,
