@@ -7,7 +7,7 @@ import { KeyPair, generateRsaKeyPair } from './secret';
 export class AppConfig extends BaseConfig {
   constructor() {
     super();
-    this.getServerCerts = memoize(this.getServerCerts);
+    this.getServerCerts = memoize(this.getServerCerts.bind(this));
   }
 
   readonly port = this.readNumber('PORT', 3000);
