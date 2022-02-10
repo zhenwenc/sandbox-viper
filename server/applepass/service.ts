@@ -49,13 +49,20 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<PK
    * The `passkit-generator` library is designed not to throw pass resource validation
    * errors. This would results in subsequent operations to fail with unrelated context.
    *
-   * TODO Hex color codes are no longer supported since `passkit-generator@3.x`?
+   * For example, when the `PKPass` is partially created, the annoying "undefined" error
+   * will throw when accessing properties like `PKPass#headerFields`.
    */
   const validationResult = PassPropsSchema.validate(R.omit(['barcode'], model));
   if (validationResult.error) {
     throw new BadRequestError(validationResult.error);
   }
 
+  /**
+   * Hex color codes are no longer supported since `passkit-generator@3.x`, use CSS-style
+   * RGB triple instead, such as rgb(23, 187, 82).
+   *
+   * @see ${https://developer.apple.com/documentation/walletpasses/pass}
+   */
   const pass = new PKPass(
     {
       ...assets,
@@ -103,6 +110,8 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<PK
 
   // TODO Why the library's `FieldsArray#splice` function doesn't work?
   //      It will results in an invalid Pass bundle.
+  //
+  // https://github.com/zhenwenc/sandbox-viper/issues/1
   //
   // Substitute field values in the generated pass with the input data. The ordering
   // of fields within the list is significant.

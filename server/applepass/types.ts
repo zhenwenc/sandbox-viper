@@ -65,6 +65,9 @@ export const PassModel = t.type({
   locations: t.union([t.array(PassModelLocation), t.undefined]),
 });
 
+type DataURLBrand = { readonly DataURL: unique symbol };
+const RxDataURL = /^data:image\/png;base64,(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+
 export type PassImageDefinition = t.TypeOf<typeof PassImageDefinition>;
 export const PassImageDefinition = t.type({
   /**
@@ -75,7 +78,7 @@ export const PassImageDefinition = t.type({
    * { "url": "data:image/png;base64,iVBOR...gg==" }
    * ```
    */
-  url: t.string,
+  url: t.brand(t.string, (s): s is t.Branded<string, DataURLBrand> => RxDataURL.test(s), 'DataURL'),
 });
 
 /**
