@@ -2,7 +2,7 @@ import R from 'ramda';
 import * as t from 'io-ts';
 import { isString } from 'lodash';
 import { oneLineTrim as markdown } from 'common-tags';
-import { Pass } from 'passkit-generator';
+import { PKPass } from 'passkit-generator';
 
 import { Logger, NotFoundError } from '@navch/common';
 import { Response, makeHandler, makeHandlers } from '@navch/http';
@@ -56,8 +56,8 @@ export const buildApplePassHandlers = makeHandlers(({ config, storage, decoders 
    * });
    * stream.pipe(res);
    */
-  const sendWalletPass = (logger: Logger, res: Response, pass: Pass) => {
-    const stream = pass.generate();
+  const sendWalletPass = (logger: Logger, res: Response, pkpass: PKPass) => {
+    const stream = pkpass.getAsStream();
 
     // Generate the stream .pkpass file stream
     const passName = `viper-${Date.now()}`;

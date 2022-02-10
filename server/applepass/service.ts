@@ -1,6 +1,8 @@
+import R from 'ramda';
 import parseDataURL from 'data-urls';
 import { v4 as uuid } from 'uuid';
-import { createPass, Pass } from 'passkit-generator';
+import { PKPass } from 'passkit-generator';
+import { PassProps as PassPropsSchema } from 'passkit-generator/lib/schemas';
 
 import { Logger, BadRequestError } from '@navch/common';
 
@@ -27,7 +29,7 @@ export type CreateWalletPassRequest = {
   readonly barcode: string;
   readonly payload: Record<string, unknown>;
 };
-export async function createWalletPass(req: CreateWalletPassRequest): Promise<Pass> {
+export async function createWalletPass(req: CreateWalletPassRequest): Promise<PKPass> {
   const { logger, template, credentials, payload, barcode } = req;
   const { model, images } = template;
   const { certificates, teamIdentifier, passTypeIdentifier } = credentials;
@@ -41,20 +43,31 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<Pa
     return { ...accu, [`${kind}.png`]: Buffer.from(parsed.body) };
   }, {});
 
-  const pass = await createPass({
-    model: {
+  /**
+   * TODO Is there a better way to capture the validation failures?
+   *
+   * The `passkit-generator` library is designed not to throw pass resource validation
+   * errors. This would results in subsequent operations to fail with unrelated context.
+   *
+   * TODO Hex color codes are no longer supported since `passkit-generator@3.x`?
+   */
+  const validationResult = PassPropsSchema.validate(R.omit(['barcode'], model));
+  if (validationResult.error) {
+    throw new BadRequestError(validationResult.error);
+  }
+
+  const pass = new PKPass(
+    {
       ...assets,
       'pass.json': Buffer.from(JSON.stringify(model)),
     },
-    certificates: {
+    {
       wwdr: certificates.wwdr,
       signerCert: certificates.signerCert,
-      signerKey: {
-        keyFile: certificates.signerKey.privateKey,
-        passphrase: certificates.signerKey.passphrase,
-      },
+      signerKey: certificates.signerKey.privateKey,
+      signerKeyPassphrase: certificates.signerKey.passphrase,
     },
-    overrides: {
+    {
       teamIdentifier,
       passTypeIdentifier,
       /**
@@ -69,19 +82,19 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<Pa
        * @see {@link https://developer.apple.com/documentation/walletpasses}
        */
       serialNumber: uuid(),
-    },
-  });
+    }
+  );
 
   // Adding some settings to be written inside pass.json
   if (template.model.barcode?.altText) {
-    pass.barcodes({
+    pass.setBarcodes({
       format: template.model.barcode?.format || 'PKBarcodeFormatQR',
       messageEncoding: template.model.barcode?.messageEncoding || 'iso-8859-1',
       message: barcode,
       altText: resolveTemplateValue(payload, template.model.barcode.altText),
     });
   } else {
-    pass.barcodes({
+    pass.setBarcodes({
       format: template.model.barcode?.format || 'PKBarcodeFormatQR',
       messageEncoding: template.model.barcode?.messageEncoding || 'iso-8859-1',
       message: barcode,
@@ -110,7 +123,9 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<Pa
   ];
   fieldArrays.forEach(fieldArray => {
     fieldArray.forEach(field => {
-      field.value = resolveTemplateValue(payload, field.value) ?? field.value;
+      if (typeof field.value === 'string') {
+        field.value = resolveTemplateValue(payload, field.value) ?? field.value;
+      }
     });
   });
 
