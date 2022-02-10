@@ -7,8 +7,8 @@ export const PassModelBarcode = t.type({
     t.literal('PKBarcodeFormatAztec'),
     t.literal('PKBarcodeFormatCode128'),
   ]),
-  message: t.string,
   messageEncoding: t.literal('iso-8859-1'),
+  message: t.union([t.string, t.undefined]),
   altText: t.union([t.string, t.undefined]),
 });
 
@@ -94,8 +94,8 @@ export const PassImageDefinition = t.type({
  *
  * See the offial Apple Pass design guide for details.
  */
-export type PassImageDefinitions = t.TypeOf<typeof PassImageDefinitions>;
-export const PassImageDefinitions = t.partial({
+export type PassImages = t.TypeOf<typeof PassImages>;
+export const PassImages = t.partial({
   /**
    * The logo image is displayed in the top left corner of the pass beside the logo
    * text.
@@ -154,9 +154,70 @@ export const PassImageDefinitions = t.partial({
 });
 
 /**
- * Represents template data model used for generating passes (PKPASS file).
+ * The name of localization identifies the language and an optional region:
+ * ```
+ *   [language identifier]-[region identifier]
+ * ```
  *
- * TODO support translations
+ * For example, the name for the French localization directory is `fr`, and the name for
+ * the Simplified Chinese is `zh-Hans`.
+ */
+const PassLocalizationName = t.string;
+const PassLocalizationStrings = t.record(t.string, t.string, 'PassLocalizationStrings');
+
+/**
+ * Each definition contains all localized image files.
+ * Each definition contains the pass.strings file for passes with localized strings.
+ *
+ * Reference from Apple Developer docs:
+ * https://developer.apple.com/documentation/walletpasses/creating_the_source_for_a_pass
+ *
+ * When a user opens a pass, the system localizes displayed strings in two different
+ * ways. The system localizes pass fields that contain dates, times, and currencies
+ * that use standard formats in the pass.json file.
+ *
+ * The system always displays localized versions of these values, even when your pass
+ * doesn’t contain localization folders for the language. The system localizes other
+ * strings on your pass using a strings file which contains a list of keys and associated
+ * localized strings.
+ *
+ * For example, to localize the field label and value of a pass with Chinese:
+ *
+ * 1. Set the value of the strings in the `PassFields.PrimaryFields` object in the pass:
+ * ```
+ *  "primaryFields": [
+ *     {
+ *       "key": "offer",
+ *       "value": "OfferAmount"
+ *       "label": "OfferAmountLabel",
+ *     }
+ *   ]
+ * ```
+ *
+ * 2. Define the translation strings for Simplified Chinese:
+ * ```
+ *   "zh-Hans": {
+ *     "strings": {
+ *       "OfferAmount": "100% 折扣",
+ *       "OfferAmountLabel": "尽享所需一切！"
+ *     }
+ *   }
+ *
+ * Use UTF-16 encoding for non-ASCII characters.
+ * ```
+ */
+export type PassLocalizations = t.TypeOf<typeof PassLocalizations>;
+export const PassLocalizations = t.record(
+  PassLocalizationName,
+  t.type({
+    images: t.union([t.undefined, PassImages]),
+    strings: t.union([t.undefined, PassLocalizationStrings]),
+  }),
+  'PassLocalizationDefinition'
+);
+
+/**
+ * Represents template data model used for generating passes (PKPASS file).
  */
 export type PassTemplateDefinition = t.TypeOf<typeof PassTemplateDefinition>;
 export const PassTemplateDefinition = t.strict({
@@ -171,7 +232,14 @@ export const PassTemplateDefinition = t.strict({
   /**
    * List of images attaching to the pass. See template layout design for details.
    */
-  images: PassImageDefinitions,
+  images: PassImages,
+  /**
+   * List of localizations attaching to the pass.
+   *
+   * See "Add Localization to the Pass" section.
+   * https://developer.apple.com/documentation/walletpasses/creating_the_source_for_a_pass
+   */
+  localizations: t.union([t.undefined, PassLocalizations]),
 });
 
 export type PassCertificates = t.TypeOf<typeof PassCertificates>;

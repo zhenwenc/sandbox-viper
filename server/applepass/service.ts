@@ -1,4 +1,6 @@
 import R from 'ramda';
+import cloneDeep from 'lodash/cloneDeep';
+import cloneDeepWith from 'lodash/cloneDeepWith';
 import parseDataURL from 'data-urls';
 import { v4 as uuid } from 'uuid';
 import { PKPass } from 'passkit-generator';
@@ -31,41 +33,32 @@ export type CreateWalletPassRequest = {
 };
 export async function createWalletPass(req: CreateWalletPassRequest): Promise<PKPass> {
   const { logger, template, credentials, payload, barcode } = req;
-  const { model, images } = template;
+  const { model, images, localizations } = template;
   const { certificates, teamIdentifier, passTypeIdentifier } = credentials;
   logger.debug('Generate Apple Wallet Pass with decoded payload', payload);
 
-  /**
-   * Load each defined image into the pass bundle.
-   */
-  const assets = Object.entries(images).reduce((accu, [kind, { url }]) => {
-    const parsed = parseImageDataURL(url);
-    return { ...accu, [`${kind}.png`]: Buffer.from(parsed.body) };
-  }, {});
-
-  /**
-   * TODO Is there a better way to capture the validation failures?
-   *
-   * The `passkit-generator` library is designed not to throw pass resource validation
-   * errors. This would results in subsequent operations to fail with unrelated context.
-   *
-   * For example, when the `PKPass` is partially created, the annoying "undefined" error
-   * will throw when accessing properties like `PKPass#headerFields`.
-   */
+  //
+  // TODO Is there a better way to capture the validation failures?
+  //
+  // The `passkit-generator` library is designed not to throw pass resource validation
+  // errors. This would results in subsequent operations to fail with unrelated context.
+  //
+  // For example, when the `PKPass` is partially created, the annoying "undefined" error
+  // will throw when accessing properties like `PKPass#headerFields`.
+  //
   const validationResult = PassPropsSchema.validate(R.omit(['barcode'], model));
   if (validationResult.error) {
     throw new BadRequestError(validationResult.error);
   }
 
-  /**
-   * Hex color codes are no longer supported since `passkit-generator@3.x`, use CSS-style
-   * RGB triple instead, such as rgb(23, 187, 82).
-   *
-   * @see ${https://developer.apple.com/documentation/walletpasses/pass}
-   */
+  //
+  // Hex color codes are no longer supported since `passkit-generator@3.x`, use CSS-style
+  // RGB triple instead, such as rgb(23, 187, 82).
+  //
+  // @see ${https://developer.apple.com/documentation/walletpasses/pass}
+  //
   const pass = new PKPass(
     {
-      ...assets,
       'pass.json': Buffer.from(JSON.stringify(model)),
     },
     {
@@ -92,7 +85,35 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<PK
     }
   );
 
-  // Adding some settings to be written inside pass.json
+  //
+  // Add each defined image into the pass bundle.
+  //
+  Object.entries(images).forEach(([kind, { url }]) => {
+    const parsed = parseImageDataURL(url);
+    pass.addBuffer(`${kind}.png`, Buffer.from(parsed.body));
+  });
+
+  //
+  // Add each defined localization settings into the pass bundle.
+  //
+  Object.entries(localizations ?? {}).forEach(([lang, localized]) => {
+    // Add location-specific image files to the localization directory
+    Object.entries(localized.images ?? []).forEach(([kind, { url }]) => {
+      const parsed = parseImageDataURL(url);
+      pass.addBuffer(`${lang}.lproj/${kind}.png`, Buffer.from(parsed.body));
+    });
+
+    // Add translation strings to the localization directory
+    const translations = cloneDeepWith(cloneDeep(localized.strings), key => {
+      if (typeof key !== 'string') return undefined;
+      return resolveTemplateValue(payload, key);
+    });
+    pass.localize(lang, translations);
+  });
+
+  //
+  // Add extra settings to be written inside pass.json
+  //
   if (template.model.barcode?.altText) {
     pass.setBarcodes({
       format: template.model.barcode?.format || 'PKBarcodeFormatQR',
@@ -108,6 +129,7 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<PK
     });
   }
 
+  //
   // TODO Why the library's `FieldsArray#splice` function doesn't work?
   //      It will results in an invalid Pass bundle.
   //
