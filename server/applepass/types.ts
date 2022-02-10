@@ -171,6 +171,47 @@ export const PassTemplateDefinition = t.strict({
   images: PassImageDefinitions,
 });
 
+export type PassCertificates = t.TypeOf<typeof PassCertificates>;
+export const PassCertificates = t.type({
+  wwdr: t.string,
+  signerCert: t.string,
+  signerKey: t.string,
+  signerKeyPassphrase: t.string,
+});
+
+/**
+ * @deprecated since 2022-02-10
+ */
+type PassCertificatesV2 = t.TypeOf<typeof PassCertificatesV2>;
+const PassCertificatesV2 = t.type({
+  wwdr: t.string,
+  signerCert: t.string,
+  signerKey: t.type({
+    privateKey: t.string,
+    passphrase: t.string,
+  }),
+});
+
+const PassCertificatesV2Converter = new t.Type<PassCertificates, PassCertificatesV2, PassCertificatesV2>(
+  'DeplicatedPassCertificates',
+  PassCertificates.is,
+  s =>
+    t.success({
+      wwdr: s.wwdr,
+      signerCert: s.signerCert,
+      signerKey: s.signerKey.privateKey,
+      signerKeyPassphrase: s.signerKey.passphrase,
+    }),
+  s => ({
+    wwdr: s.wwdr,
+    signerCert: s.signerCert,
+    signerKey: {
+      privateKey: s.signerKey,
+      passphrase: s.signerKeyPassphrase,
+    },
+  })
+);
+
 /**
  * The credentials for signing the generated Apple Pass, must be PEM text.
  *
@@ -180,12 +221,5 @@ export type PassCredentials = t.TypeOf<typeof PassCredentials>;
 export const PassCredentials = t.type({
   teamIdentifier: t.string,
   passTypeIdentifier: t.string,
-  certificates: t.type({
-    wwdr: t.string,
-    signerCert: t.string,
-    signerKey: t.type({
-      privateKey: t.string,
-      passphrase: t.string,
-    }),
-  }),
+  certificates: t.union([PassCertificates, PassCertificatesV2.pipe(PassCertificatesV2Converter)]),
 });

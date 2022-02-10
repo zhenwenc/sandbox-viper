@@ -64,8 +64,8 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<PK
     {
       wwdr: certificates.wwdr,
       signerCert: certificates.signerCert,
-      signerKey: certificates.signerKey.privateKey,
-      signerKeyPassphrase: certificates.signerKey.passphrase,
+      signerKey: certificates.signerKey,
+      signerKeyPassphrase: certificates.signerKeyPassphrase,
     },
     {
       teamIdentifier,
