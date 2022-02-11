@@ -1,11 +1,23 @@
 import * as Locales from 'date-fns/locale';
 import R from 'ramda';
+import memoize from 'memoizee';
 import Handlebars from 'handlebars';
 import { format } from 'date-fns-tz';
+import { Locale } from 'date-fns';
+
+import { isNotNullish } from '@navch/common';
+
+const getAllLocales = memoize((): Map<string, Locale> => {
+  const pairs = Object.values(Locales).map((item: Locale) => {
+    if (!item.code) return undefined;
+    return [item.code, item] as const;
+  });
+  return new Map(pairs.filter(isNotNullish));
+});
 
 const parseLocaleSafe = (code: unknown): Locale | undefined => {
   if (typeof code !== 'string') return undefined;
-  return Locales[code] as Locale;
+  return getAllLocales().get(code);
 };
 
 Handlebars.registerHelper('upper', str => R.toUpper(str));

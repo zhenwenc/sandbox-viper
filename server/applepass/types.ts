@@ -154,16 +154,16 @@ export const PassImages = t.partial({
 });
 
 /**
- * The name of localization identifies the language and an optional region:
+ * The BCP 47 language tag of localization identifies the language and an optional region:
  * ```
- *   [language identifier]-[region identifier]
+ *   [language identifier]-[optional region identifier]
  * ```
  *
  * For example, the name for the French localization directory is `fr`, and the name for
  * the Simplified Chinese is `zh-Hans`.
  */
-const PassLocalizationName = t.string;
-const PassLocalizationStrings = t.record(t.string, t.string, 'PassLocalizationStrings');
+const PassLanguageTag = t.string;
+const PassTranslationStrings = t.record(t.string, t.string, 'PassTranslationStrings');
 
 /**
  * Each definition contains all localized image files.
@@ -208,10 +208,10 @@ const PassLocalizationStrings = t.record(t.string, t.string, 'PassLocalizationSt
  */
 export type PassLocalizations = t.TypeOf<typeof PassLocalizations>;
 export const PassLocalizations = t.record(
-  PassLocalizationName,
+  PassLanguageTag,
   t.type({
     images: t.union([t.undefined, PassImages]),
-    strings: t.union([t.undefined, PassLocalizationStrings]),
+    strings: t.union([t.undefined, PassTranslationStrings]),
   }),
   'PassLocalizationDefinition'
 );
