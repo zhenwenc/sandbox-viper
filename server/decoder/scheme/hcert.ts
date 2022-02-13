@@ -10,6 +10,12 @@ import { Logger, BadRequestError, invariant, threadP } from '@navch/common';
 
 import { Decoder, DecodeResult, PayloadRecord } from '../types';
 
+/**
+ * According to the HCERT spec, the QR code content SHALL be prefixed by the Context
+ * Identifier string "HC1:".
+ *
+ * https://github.com/ehn-dcc-development/hcert-spec/blob/main/hcert_spec.md
+ */
 const HCERT_PATTERN = '^HC1:?(.+)$';
 
 const DCC_JSON_SCHEMA_REPO = 'https://raw.githubusercontent.com/ehn-dcc-development/ehn-dcc-schema';
@@ -162,7 +168,7 @@ export class HCERTDecoder implements Decoder {
       }
     ).catch(err => {
       this.logger.error('Failed to decode HCERT input', { err });
-      throw new Error(`Invalid HCERT: ${err}`);
+      throw new Error(`Invalid HCERT payload: ${err}`);
     });
   }
 }
