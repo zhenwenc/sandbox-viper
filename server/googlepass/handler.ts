@@ -3,7 +3,7 @@ import * as t from 'io-ts';
 import { isString } from 'lodash';
 import { oneLineTrim as markdown } from 'common-tags';
 
-import { Logger, NotFoundError } from '@navch/common';
+import { Logger } from '@navch/common';
 import { makeHandler, makeHandlers } from '@navch/http';
 
 import { createWalletPass } from './service';
@@ -12,7 +12,7 @@ import { AppConfig } from '../config';
 import { encrypt, decrypt } from '../secret';
 import { Decoder } from '../decoder/types';
 import { decode } from '../decoder/service';
-import { getLocalTemplates } from '../template/service';
+import { getLocalTemplates, buildTemplateCache } from '../template/service';
 import { PassCredentials, PassTemplateDefinition } from './types';
 
 export type Options = {
@@ -21,28 +21,16 @@ export type Options = {
   readonly decoders: Decoder[];
 };
 
-export const buildGooglePassHandlers = makeHandlers(({ config, storage, decoders }: Options) => {
-  // Refresh the local Wallet Pass templates if needed
-  const refreshPassTemplateCache = async (logger: Logger, forceReload = false) => {
-    if (forceReload || storage.isEmpty()) {
-      const items = await getLocalTemplates({
+export const buildGooglePassHandlers = makeHandlers(({ config, decoders }: Options) => {
+  const templateCache = buildTemplateCache({
+    fetchTemplates: async (logger: Logger) => {
+      return await getLocalTemplates({
         logger,
         schema: PassTemplateDefinition,
         rootDir: config.googlePassTemplatesPath,
       });
-      await Promise.all(items.map(item => storage.setItem(item.id, item)));
-    }
-  };
-
-  // Fine Wallet Pass template by ID
-  const findTemplateById = async (logger: Logger, templateId: string, forceReload = false) => {
-    await refreshPassTemplateCache(logger, forceReload);
-    const result = await storage.getItem<PassTemplateDefinition>(templateId);
-    if (!result) {
-      throw new NotFoundError(`No template found with ID "${templateId}"`);
-    }
-    return result;
-  };
+    },
+  });
 
   return [
     makeHandler({
@@ -111,8 +99,11 @@ export const buildGooglePassHandlers = makeHandlers(({ config, storage, decoders
         const { getServerCerts } = config;
         logger.info('Generate Google Pay Pass with arguments', { template });
 
-        const passTemplate = isString(template)
-          ? await findTemplateById(logger, template, Boolean(forceReload))
+        // Refresh the local templates if needed, useful for development
+        if (Boolean(forceReload)) await templateCache.clear();
+
+        const passTemplate: PassTemplateDefinition = isString(template)
+          ? await templateCache.findById(logger, template)
           : template;
 
         const passCredentials: PassCredentials = isString(credentials)
@@ -150,9 +141,9 @@ export const buildGooglePassHandlers = makeHandlers(({ config, storage, decoders
       `,
       handle: async (_1, _2, { logger }) => {
         logger.debug('Return predefined Google PayPass templates');
-        await refreshPassTemplateCache(logger);
+        await templateCache.clear();
 
-        const templates = await storage.getAll<PassTemplateDefinition>();
+        const templates = await templateCache.getAll(logger);
         return templates.sort(R.ascend(x => x.description)).map(item => ({
           templateId: item.id,
           description: item.description,

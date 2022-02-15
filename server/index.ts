@@ -1,3 +1,4 @@
+import Redis from 'ioredis';
 import morgan from 'morgan';
 import { compose, trim } from 'ramda';
 
@@ -6,7 +7,7 @@ import { makeRouter, middlewares, setRequestContext } from '@navch/http';
 
 import { AppConfig } from './config';
 import { buildDecoders } from './decoder/service';
-import { buildInMemoryStorage } from './storage';
+import { buildInMemoryStorage, buildRedisStorage } from './storage';
 import { buildDecoderHandlers } from './decoder/handler';
 import { buildApplePassHandlers } from './applepass/handler';
 import { buildGooglePassHandlers } from './googlepass/handler';
@@ -15,10 +16,25 @@ export function buildHandler() {
   const config = new AppConfig();
   const logger = new Logger({ name: 'viper', prettyPrint: !config.isProdEnv });
 
-  const applStorage = buildInMemoryStorage();
-  const googStorage = buildInMemoryStorage();
-
   const decoders = buildDecoders(logger);
+
+  const applStorage = config.redisURI
+    ? buildRedisStorage(
+        new Redis(config.redisURI, {
+          keyPrefix: 'sandbox:viper:applepass:',
+          showFriendlyErrorStack: true,
+        })
+      )
+    : buildInMemoryStorage();
+
+  const googStorage = config.redisURI
+    ? buildRedisStorage(
+        new Redis(config.redisURI, {
+          keyPrefix: 'sandbox:viper:googlepass:',
+          showFriendlyErrorStack: true,
+        })
+      )
+    : buildInMemoryStorage();
 
   const requestLogger = morgan('dev', {
     stream: { write: compose(logger.debug, trim) },

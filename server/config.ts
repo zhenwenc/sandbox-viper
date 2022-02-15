@@ -12,6 +12,8 @@ export class AppConfig extends BaseConfig {
 
   readonly port = this.readNumber('PORT', 3000);
 
+  readonly redisURI = this.read('REDIS_URI', null);
+
   /**
    * Location of the local pass bundles.
    *

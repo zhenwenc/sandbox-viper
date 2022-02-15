@@ -4,12 +4,12 @@ import { isString } from 'lodash';
 import { oneLineTrim as markdown } from 'common-tags';
 import { PKPass } from 'passkit-generator';
 
-import { Logger, NotFoundError } from '@navch/common';
+import { Logger } from '@navch/common';
 import { Response, makeHandler, makeHandlers } from '@navch/http';
 
 import { Storage } from '../storage';
 import { AppConfig } from '../config';
-import { getLocalTemplates } from '../template/service';
+import { getLocalTemplates, buildTemplateCache } from '../template/service';
 import { encrypt, decrypt } from '../secret';
 import { Decoder } from '../decoder/types';
 import { decode } from '../decoder/service';
@@ -22,28 +22,16 @@ export type Options = {
   readonly decoders: Decoder[];
 };
 
-export const buildApplePassHandlers = makeHandlers(({ config, storage, decoders }: Options) => {
-  // Refresh the local Wallet Pass templates if needed
-  const refreshPassTemplateCache = async (logger: Logger, forceReload = false) => {
-    if (forceReload || storage.isEmpty()) {
-      const items = await getLocalTemplates({
+export const buildApplePassHandlers = makeHandlers(({ config, decoders }: Options) => {
+  const templateCache = buildTemplateCache({
+    fetchTemplates: async (logger: Logger) => {
+      return await getLocalTemplates({
         logger,
         schema: PassTemplateDefinition,
         rootDir: config.applePassTemplatesPath,
       });
-      await Promise.all(items.map(item => storage.setItem(item.id, item)));
-    }
-  };
-
-  // Fine Wallet Pass template by ID
-  const findTemplateById = async (logger: Logger, templateId: string, forceReload = false) => {
-    await refreshPassTemplateCache(logger, forceReload);
-    const result = await storage.getItem<PassTemplateDefinition>(templateId);
-    if (!result) {
-      throw new NotFoundError(`No template found with ID "${templateId}"`);
-    }
-    return result;
-  };
+    },
+  });
 
   /**
    * Sends the generated Apple Pass bundle as response payload.
@@ -131,8 +119,11 @@ export const buildApplePassHandlers = makeHandlers(({ config, storage, decoders 
         const { getServerCerts } = config;
         logger.info('Generate Apple Wallet Pass with arguments', { template });
 
+        // Refresh the local templates if needed, useful for development
+        if (Boolean(forceReload)) await templateCache.clear();
+
         const passTemplate: PassTemplateDefinition = isString(template)
-          ? await findTemplateById(logger, template, Boolean(forceReload))
+          ? await templateCache.findById(logger, template)
           : template;
 
         const passCredentials: PassCredentials = isString(credentials)
@@ -164,9 +155,9 @@ export const buildApplePassHandlers = makeHandlers(({ config, storage, decoders 
       `,
       handle: async (_1, _2, { logger }) => {
         logger.debug('Return predefined Apple Wallet Pass templates');
-        await refreshPassTemplateCache(logger);
+        await templateCache.clear();
 
-        const templates = await storage.getAll<PassTemplateDefinition>();
+        const templates = await templateCache.getAll(logger);
         return templates.sort(R.ascend(x => x.model?.description)).map(item => ({
           templateId: item.id,
           description: item.model?.description,
