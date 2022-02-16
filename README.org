@@ -186,7 +186,7 @@ Content-Type: application/json
       },
       "barcode": {
         "type": "qrCode",
-        "value": "{{ meta.barcode }}"
+        "value": "{{ barcode }}"
       },
       "textModulesData": [
         {

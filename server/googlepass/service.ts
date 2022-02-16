@@ -244,17 +244,21 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<st
   // Construct the PayPass object with the decoded payload by substituting field
   // values in the generated pass with the input data.
   //
-  const objectFields = R.mergeDeepRight(payload, {
+  const templateData = R.mergeDeepRight(payload, {
     meta: {
       id: `${issuerId}.${uuid()}`,
       classId: classRecord.id,
-      barcode,
       issuerId,
+      // TODO Remove this property.
+      //
+      // @deplicated since 2022-02-17
+      barcode,
     },
+    barcode,
   });
   const objectRecord: WalletObject = cloneDeepWith(cloneDeep(objectTemplate), key => {
     if (typeof key !== 'string') return undefined;
-    return resolveTemplateValue(objectFields, key);
+    return resolveTemplateValue(templateData, key);
   });
 
   const client = new GoogleAuth({

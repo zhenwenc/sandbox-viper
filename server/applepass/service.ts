@@ -37,6 +37,8 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<PK
   const { certificates, teamIdentifier, passTypeIdentifier } = credentials;
   logger.debug('Generate Apple Wallet Pass with decoded payload', payload);
 
+  const templateData = R.mergeDeepRight(payload, { barcode });
+
   //
   // TODO Is there a better way to capture the validation failures?
   //
@@ -106,7 +108,7 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<PK
     // Add translation strings to the localization directory
     const translations = cloneDeepWith(cloneDeep(localized.strings), key => {
       if (typeof key !== 'string') return undefined;
-      return resolveTemplateValue(payload, key);
+      return resolveTemplateValue(templateData, key);
     });
     pass.localize(lang, translations);
   });
@@ -119,7 +121,7 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<PK
       format: template.model.barcode?.format || 'PKBarcodeFormatQR',
       messageEncoding: template.model.barcode?.messageEncoding || 'iso-8859-1',
       message: barcode,
-      altText: resolveTemplateValue(payload, template.model.barcode.altText),
+      altText: resolveTemplateValue(templateData, template.model.barcode.altText),
     });
   } else {
     pass.setBarcodes({
@@ -155,7 +157,7 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<PK
   fieldArrays.forEach(fieldArray => {
     fieldArray.forEach(field => {
       if (typeof field.value === 'string') {
-        field.value = resolveTemplateValue(payload, field.value) ?? field.value;
+        field.value = resolveTemplateValue(templateData, field.value) ?? field.value;
       }
     });
   });
