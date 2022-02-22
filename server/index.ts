@@ -43,6 +43,7 @@ export function buildHandler() {
   const router = makeRouter();
   router.use(setRequestContext({ logger }));
   router.use(middlewares.fromCallback(requestLogger));
+  router.use(middlewares.errorHandler({ expose: true }));
 
   // -----------------------------------------------------------------------
   // TODO Launch services on demand
