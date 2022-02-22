@@ -1,10 +1,9 @@
 import type { AppProps } from 'next/app';
 
-import { Theme, ThemeContext } from '@navch-ui/styles';
+import { ThemeContext, buildTheme } from '@navch-ui/styles';
 import { OverlayContainer } from '@navch-ui/core';
 
-const baseTheme = new Theme();
-export const theme = Theme.extend(baseTheme, {
+export const theme = buildTheme(baseTheme => ({
   color: {
     ui: {
       tint1: '#3A4B53',
@@ -27,7 +26,7 @@ export const theme = Theme.extend(baseTheme, {
     },
     radius: baseTheme.spacing(2),
   },
-});
+}));
 
 export default function App(props: AppProps) {
   const { Component, pageProps } = props;

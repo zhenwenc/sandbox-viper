@@ -165,13 +165,13 @@ const useStyles = makeStyles(theme => ({
     width: '100%',
     padding: theme.spacing(6),
     marginBottom: theme.spacing(4),
-    borderRadius: theme.border.radius,
+    borderRadius: theme.shape.borderRadius,
     backgroundColor: theme.color.ui.tint2,
   },
   cardActions: {
     gridAutoFlow: 'column',
     columnGap: theme.spacing(2),
     paddingTop: theme.spacing(3),
-    borderTop: `1px solid ${theme.border.color.base}`,
+    borderTop: `1px solid ${theme.color.border.base}`,
   },
 }));
