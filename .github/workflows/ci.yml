@@ -68,7 +68,7 @@ jobs:
             sandbox-viper-preview.vercel.app
 
       - name: Deploy Production
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: amondnet/vercel-action@v19
         with:
           vercel-token:      ${{ secrets.VERCEL_TOKEN }}
