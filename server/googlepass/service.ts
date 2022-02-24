@@ -3,6 +3,7 @@ import R from 'ramda';
 import jwt from 'jsonwebtoken';
 import pluralize from 'pluralize';
 import cloneDeep from 'lodash/cloneDeep';
+import snakeCase from 'lodash/snakeCase';
 import cloneDeepWith from 'lodash/cloneDeepWith';
 import { v4 as uuid } from 'uuid';
 import { GaxiosError } from 'gaxios';
@@ -10,6 +11,7 @@ import { GoogleAuth } from 'google-auth-library';
 import { Logger, NotFoundError, recoverP } from '@navch/common';
 import { validate } from '@navch/codec';
 
+import { createZipFile } from '../template/service';
 import { resolveTemplateValue } from '../template/renderer';
 import { WalletObject, WalletClass, PassStyle, PassTemplateDefinition, PassCredentials } from './types';
 
@@ -315,4 +317,33 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<st
       },
     });
   }
+}
+
+export type CreateTemplateZipRequest = {
+  readonly logger: Logger;
+  readonly template: PassTemplateDefinition;
+  readonly metadataFile: string | undefined;
+};
+export async function createTemplateZip(req: CreateTemplateZipRequest): Promise<NodeJS.ReadableStream> {
+  const { logger, template, metadataFile } = req;
+  logger.debug('Convert Google Pay Pass template to zip file');
+
+  const metadata = {
+    name: template.name,
+    passStyle: snakeCase(template.style).toUpperCase(),
+  };
+
+  return createZipFile({
+    entries: {
+      ...(template.classTemplate && {
+        'class.json': Buffer.from(JSON.stringify(template.classTemplate)),
+      }),
+      ...(template.objectTemplate && {
+        'object.json': Buffer.from(JSON.stringify(template.objectTemplate)),
+      }),
+      ...(metadataFile && {
+        [metadataFile]: Buffer.from(JSON.stringify(metadata)),
+      }),
+    },
+  });
 }

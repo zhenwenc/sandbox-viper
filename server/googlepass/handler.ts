@@ -6,7 +6,7 @@ import { oneLineTrim as markdown } from 'common-tags';
 import { Logger } from '@navch/common';
 import { makeHandler, makeHandlers } from '@navch/http';
 
-import { createWalletPass } from './service';
+import { createWalletPass, createTemplateZip } from './service';
 import { Storage } from '../storage';
 import { AppConfig } from '../config';
 import { encrypt, decrypt } from '../secret';
@@ -144,10 +144,36 @@ export const buildGooglePassHandlers = makeHandlers(({ config, decoders }: Optio
         await templateCache.clear();
 
         const templates = await templateCache.getAll(logger);
-        return templates.sort(R.ascend(x => x.description)).map(item => ({
+        return templates.sort(R.ascend(x => x.name)).map(item => ({
           templateId: item.id,
-          description: item.description,
+          description: item.name || 'unknown',
         }));
+      },
+    }),
+    makeHandler({
+      route: '/templates/convert',
+      method: 'POST',
+      description: markdown`
+        Converts the given template from the sandbox specific structure into a ZIP archive.
+
+        This is useful if you were using the sandbox for exploration, and you're ready to
+        export your template for later use.
+      `,
+      input: {
+        body: t.type({
+          /**
+           * The definition of a template to be converted.
+           */
+          template: PassTemplateDefinition,
+        }),
+      },
+      handle: async (_1, { template }, { logger }) => {
+        logger.debug('Converts Google Pay Pass template');
+        return createTemplateZip({
+          logger,
+          template,
+          metadataFile: 'config.json',
+        });
       },
     }),
     makeHandler({

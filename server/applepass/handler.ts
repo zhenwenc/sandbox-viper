@@ -14,7 +14,7 @@ import { encrypt, decrypt } from '../secret';
 import { Decoder } from '../decoder/types';
 import { decode } from '../decoder/service';
 import { PassTemplateDefinition, PassCredentials } from './types';
-import { createWalletPass } from './service';
+import { createWalletPass, createTemplateZip } from './service';
 
 export type Options = {
   readonly config: AppConfig;
@@ -162,6 +162,32 @@ export const buildApplePassHandlers = makeHandlers(({ config, decoders }: Option
           templateId: item.id,
           description: item.model?.description,
         }));
+      },
+    }),
+    makeHandler({
+      route: '/templates/convert',
+      method: 'POST',
+      description: markdown`
+        Converts the given template from the sandbox specific structure into a ZIP archive.
+
+        This is useful if you were using the sandbox for exploration, and you're ready to
+        export your template for later use.
+      `,
+      input: {
+        body: t.type({
+          /**
+           * The definition of a template to be converted.
+           */
+          template: PassTemplateDefinition,
+        }),
+      },
+      handle: async (_1, { template }, { logger }) => {
+        logger.debug('Converts Apple Wallet Pass template');
+        return createTemplateZip({
+          logger,
+          template,
+          metadataFile: 'config.json',
+        });
       },
     }),
     makeHandler({

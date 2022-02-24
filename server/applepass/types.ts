@@ -226,6 +226,10 @@ export const PassTemplateDefinition = t.strict({
    */
   id: t.string,
   /**
+   * Brief description of the template, used for human.
+   */
+  name: t.union([t.undefined, t.string]),
+  /**
    * Pass appearance definition, layout, fields, barcodes and other pass properties.
    */
   model: PassModel,

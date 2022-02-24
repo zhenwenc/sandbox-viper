@@ -1,4 +1,5 @@
 import R from 'ramda';
+import flatten from 'lodash/flatten';
 import cloneDeep from 'lodash/cloneDeep';
 import cloneDeepWith from 'lodash/cloneDeepWith';
 import parseDataURL from 'data-urls';
@@ -6,8 +7,9 @@ import { v4 as uuid } from 'uuid';
 import { PKPass } from 'passkit-generator';
 import { PassProps as PassPropsSchema } from 'passkit-generator/lib/schemas';
 
-import { Logger, BadRequestError } from '@navch/common';
+import { Logger, BadRequestError, isNotNullish } from '@navch/common';
 
+import { createZipFile } from '../template/service';
 import { resolveTemplateValue } from '../template/renderer';
 import { PassTemplateDefinition, PassCredentials } from './types';
 
@@ -163,4 +165,63 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<PK
   });
 
   return pass;
+}
+
+export type CreateTemplateZipRequest = {
+  readonly logger: Logger;
+  readonly template: PassTemplateDefinition;
+  readonly metadataFile: string | undefined;
+};
+export async function createTemplateZip(req: CreateTemplateZipRequest): Promise<NodeJS.ReadableStream> {
+  const { logger, template, metadataFile } = req;
+  logger.debug('Convert Apple Wallet Pass template to zip file');
+
+  const metadata = {
+    name: template.name,
+  };
+
+  const mapResources = <T extends Record<string, any>>(
+    values: T | undefined,
+    func: (key: keyof T, value: NonNullable<T[keyof T]>) => Record<string, Buffer>
+  ): Record<string, Buffer> => {
+    const pairs = Object.entries(values ?? {}).map(([key, value]) => {
+      if (value == null) return undefined;
+      return R.toPairs(func(key, value)).filter(value => isNotNullish(value));
+    });
+    return R.fromPairs(flatten(pairs.filter(isNotNullish)));
+  };
+
+  const imageFiles = mapResources(template.images, (kind, { url }) => {
+    const parsed = parseImageDataURL(url);
+    return { [`${kind}.png`]: Buffer.from(parsed.body) };
+  });
+
+  const localizationFiles = mapResources(template.localizations, (lang, localized) => {
+    // Add location-specific image files to the localization directory
+    const images = mapResources(localized.images, (kind, { url }) => {
+      const parsed = parseImageDataURL(url);
+      return { [`${lang}.lproj/${kind}.png`]: Buffer.from(parsed.body) };
+    });
+
+    // Add translation strings to the localization directory
+    const strings = R.toPairs(localized.strings ?? {})
+      .map(pair => pair.map(str => `"${str}"`).join('='))
+      .join('\n');
+
+    return {
+      ...images,
+      ...(!R.isEmpty(strings) && { [`${lang}.lproj/pass.strings`]: Buffer.from(strings) }),
+    };
+  });
+
+  return createZipFile({
+    entries: {
+      'pass.json': Buffer.from(JSON.stringify(template.model)),
+      ...(!R.isEmpty(imageFiles) && imageFiles),
+      ...(!R.isEmpty(localizationFiles) && localizationFiles),
+      ...(metadataFile && {
+        [metadataFile]: Buffer.from(JSON.stringify(metadata)),
+      }),
+    },
+  });
 }

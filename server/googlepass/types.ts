@@ -85,9 +85,9 @@ export const PassTemplateDefinition = t.type({
    */
   id: t.string,
   /**
-   * Brief description of the template, used for the companion GUI tool.
+   * Brief description of the template, used for human.
    */
-  description: t.string,
+  name: t.union([t.undefined, t.string]),
   /**
    * Pass template in Google Pay Passes' concept. The corresponding `Class` and `Object`
    * keywords will be constructed based on the `style`.

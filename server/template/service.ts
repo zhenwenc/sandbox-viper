@@ -2,6 +2,8 @@ import * as t from 'io-ts';
 import path from 'path';
 import fs from 'fs-extra';
 import memoize from 'memoizee';
+import forEach from 'lodash/forEach';
+import { ZipFile } from 'yazl';
 
 import { Logger, MaybePromise, NotFoundError, isNotNullish } from '@navch/common';
 import { validate } from '@navch/codec';
@@ -14,7 +16,7 @@ import { TemplateRecord } from './types';
  * It is recommended to cache the prepared PassModel in memory to be reused by multiple
  * requests to reduce the overhead of hitting the filesystem.
  */
-export type GetLocalTemplateOptions<A, O> = {
+type GetLocalTemplateOptions<A, O> = {
   readonly logger: Logger;
   readonly rootDir: string;
   readonly schema: t.Type<A, O>;
@@ -37,7 +39,7 @@ export async function getLocalTemplates<A extends TemplateRecord, O = A>(
 /**
  * Returns an abstract template manager that caches the loaded template in memory.
  */
-export type TemplateCacheOptions<A> = {
+type TemplateCacheOptions<A> = {
   readonly fetchTemplates: (logger: Logger) => MaybePromise<A[]>;
 };
 export function buildTemplateCache<A extends TemplateRecord>(options: TemplateCacheOptions<A>) {
@@ -64,4 +66,26 @@ export function buildTemplateCache<A extends TemplateRecord>(options: TemplateCa
       return result;
     },
   };
+}
+
+/**
+ * Bundles the sandbox specific template definitions to a ZIP file.
+ */
+type CreateTemplateZipFileOptions = {
+  /**
+   * A flat dictionary keyed by file path. Parent directories will be created for
+   * nested file paths, such as "parent/file.txt".
+   */
+  readonly entries: Readonly<Record<string, Buffer>>;
+};
+export function createZipFile(options: CreateTemplateZipFileOptions) {
+  const { entries } = options;
+  const zipFile = new ZipFile();
+
+  forEach(entries, (buffer, metadataPath) => {
+    zipFile.addBuffer(buffer, metadataPath);
+  });
+  zipFile.end();
+
+  return zipFile.outputStream;
 }
