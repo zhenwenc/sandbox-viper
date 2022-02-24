@@ -28,7 +28,7 @@ export const BarcodeReader: React.FC<Props> = props => {
 
   return (
     <Modal title="Wallet Pass Barcode Reader" isOpen={isOpen} onClose={onClose}>
-      <QrReader delay={500} onError={handleError} onScan={handleScan} resolution={1024} />
+      {isOpen && <QrReader delay={500} onError={handleError} onScan={handleScan} resolution={1024} />}
     </Modal>
   );
 };
