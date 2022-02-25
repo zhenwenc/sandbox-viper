@@ -17,7 +17,7 @@ import { PassTemplateDefinition, PassCredentials } from './types';
 import { createWalletPass, createTemplateZip } from './service';
 
 export type Options = {
-  readonly config: AppConfig;
+  readonly config: Pick<AppConfig, 'applePassTemplatesPath' | 'getServerCerts'>;
   readonly storage: Storage;
   readonly decoders: Decoder[];
 };
