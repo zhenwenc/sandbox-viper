@@ -3,7 +3,7 @@ import setPath from 'lodash/set';
 import { randomBytes } from 'crypto';
 import supertest, { Test, SuperTest, Response } from 'supertest';
 
-import { Logger, HttpStatus } from '@navch/common';
+import { Logger, LoggerLevel, HttpStatus } from '@navch/common';
 import { makeRouter, middlewares, setRequestContext } from '@navch/http';
 
 import { buildInMemoryStorage } from '../storage';
@@ -93,7 +93,10 @@ describe('applepass handlers', () => {
   };
 
   beforeAll(async () => {
-    const logger = Logger.instance;
+    const logger = Logger.instance.child({
+      level: LoggerLevel.ERROR,
+    });
+
     const handlers = buildApplePassHandlers({
       config: {
         getServerCerts: getServerCertsMock,
@@ -209,7 +212,7 @@ describe('applepass handlers', () => {
       },
       dynamicData: {
         discount: '120%',
-        expires: 1366815600000,
+        expires: 1366815600000, // Thu Apr 25 2013 03:00:00 GMT+1200
       },
       barcode: 'ABCD1234',
     };
@@ -256,5 +259,56 @@ describe('applepass handlers', () => {
 
   it('should populate template with the decoded payload', async () => {
     // TODO
+  });
+
+  it.each([
+    ['the ISO 6801 format by default', , , , '2022-02-15T14:00:00.000Z'],
+    ['a given date format', 'dd MMM yyyy', , , '15 Feb 2022'],
+    ['a given time format', 'hh:mm a', , , '02:00 PM'],
+    ['a zoned date time', , 'Pacific/Auckland', , '2022-02-16T03:00:00.000+13:00'],
+    ['a localized date format', "yyyy'年'MMMdo", , 'zh-CN', '2022年2月15日'],
+  ])('should support format date value to %s', async (_desc, dateFormat, timeZone, locale, expected) => {
+    const quote = (str?: string) => str && `"${str}"`;
+    const expr = `{{ date expires ${quote(dateFormat)} ${quote(timeZone)} ${quote(locale)} }}`;
+
+    const payload = {
+      credentials,
+      template: {
+        id: 'TEST',
+        model: {
+          formatVersion: 1,
+          organizationName: 'Paw Planet',
+          description: 'Paw Planet Coupon',
+          barcode: { format: 'PKBarcodeFormatQR', messageEncoding: 'iso-8859-1' },
+          coupon: {
+            auxiliaryFields: [{ key: 'expires', label: 'EXPIRES', value: expr }],
+          },
+        },
+        images: {
+          icon: { url: randomImageURL() },
+          logo: { url: randomImageURL() },
+        },
+      },
+      dynamicData: {
+        expires: 1644933600000, // Feb 16 2022 03:00:00 GMT+1300
+      },
+      barcode: 'ABCD1234',
+    };
+    const response = await request
+      .post('/')
+      .send(payload)
+      .expect(HttpStatus.OK)
+      .responseType('blob')
+      .then(parseResponseBody);
+
+    expect(response).toMatchObject({
+      'pass.json': {
+        formatVersion: 1,
+        organizationName: 'Paw Planet',
+        description: 'Paw Planet Coupon',
+        barcodes: [{ format: 'PKBarcodeFormatQR', messageEncoding: 'iso-8859-1', message: 'ABCD1234' }],
+        coupon: { auxiliaryFields: [{ key: 'expires', label: 'EXPIRES', value: expected }] },
+      },
+    });
   });
 });

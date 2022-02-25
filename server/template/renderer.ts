@@ -2,8 +2,8 @@ import * as Locales from 'date-fns/locale';
 import R from 'ramda';
 import memoize from 'memoizee';
 import Handlebars from 'handlebars';
-import { format } from 'date-fns-tz';
-import { Locale } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+import { format, Locale } from 'date-fns';
 
 import { isNotNullish } from '@navch/common';
 
@@ -20,6 +20,11 @@ const parseLocaleSafe = (code: unknown): Locale | undefined => {
   return getAllLocales().get(code);
 };
 
+const parseTimeZoneSafe = (code: unknown): string | undefined => {
+  if (typeof code !== 'string') return undefined;
+  return code;
+};
+
 Handlebars.registerHelper('upper', str => R.toUpper(str));
 Handlebars.registerHelper('lower', str => R.toLower(str));
 
@@ -28,13 +33,31 @@ Handlebars.registerHelper('lower', str => R.toLower(str));
  * the specified timezone and locale.
  *
  * Only avaibale locales in `date-fns/locale` are supported.
+ *
+ * Apart from the format tokens supported by `date-fns/format`, you can format the
+ * full timezone name with unicode tokens:
+ *
+ * - `z..zzz`: short specific non-location format, e.g. `EST`
+ * - `zzzz`: long specific non-location format, e.g. `Eastern Standard Time`
+ *
+ * @param date valid JS date/time string or unix timestamp in milliseconds
+ * @param dateFormat an optional string of RT35 date format tokens
+ * @param timeZone an optional IANA time zone name or offset string
+ * @param locale an optional BCP 47 language code that `date-fns/locale` supports
+ *
+ * @see {@link https://date-fns.org/v2.28.0/docs/format}
  */
-Handlebars.registerHelper('date', (date, dateFormat, timeZone, locale) => {
-  if (date == null) return undefined;
-  return format(new Date(date), dateFormat, {
-    timeZone,
-    locale: parseLocaleSafe(locale),
-  });
+Handlebars.registerHelper('date', (value, maybeFormat, maybeTimeZone, maybeLocale) => {
+  if (value == null) return undefined;
+
+  const date = new Date(value);
+  const dateFormat = maybeFormat ?? "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
+  const timeZone = parseTimeZoneSafe(maybeTimeZone) ?? 'GMT';
+  const locale = parseLocaleSafe(maybeLocale);
+
+  return timeZone
+    ? formatInTimeZone(date, timeZone, dateFormat, { locale })
+    : format(date, dateFormat, { locale });
 });
 
 /**
