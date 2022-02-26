@@ -1,7 +1,7 @@
 import * as t from 'io-ts';
 import cbor from 'cbor';
 import { pki } from 'node-forge';
-import { JWK, JWE } from 'node-jose';
+import { JWK, JWE } from 'node-jose'; // TODO replace with `jose`
 import { promisify } from 'util';
 import { generateKeyPair } from 'crypto';
 

@@ -43,6 +43,7 @@
     "helmet": "4.6.0",
     "hi-base32": "0.5.1",
     "ioredis": "4.27.7",
+    "jose": "4.5.1",
     "jsonschema": "1.4.0",
     "jsonwebtoken": "8.5.1",
     "markdown-to-jsx": "7.1.3",

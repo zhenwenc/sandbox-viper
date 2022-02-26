@@ -1,5 +1,6 @@
 import yauzl from 'yauzl';
 import setPath from 'lodash/set';
+import { importSPKI, SignJWT } from 'jose';
 import { randomBytes } from 'crypto';
 import supertest, { Test, SuperTest, Response } from 'supertest';
 
@@ -258,7 +259,52 @@ describe('applepass handlers', () => {
   });
 
   it('should populate template with the decoded payload', async () => {
-    // TODO
+    const encoder = new TextEncoder();
+    const token = await new SignJWT({ userinfo: { email: 'user@example.com' } })
+      .setProtectedHeader({ alg: 'HS256' })
+      .sign(encoder.encode('random symmetric secrets'));
+
+    const payload = {
+      credentials,
+      template: {
+        id: 'TEST',
+        model: {
+          formatVersion: 1,
+          organizationName: 'Paw Planet',
+          description: 'Paw Planet Coupon',
+          barcode: {
+            format: 'PKBarcodeFormatQR',
+            messageEncoding: 'iso-8859-1',
+          },
+          coupon: {
+            primaryFields: [{ key: 'email', label: 'EMAIL', value: '{{ data.userinfo.email }}' }],
+          },
+        },
+        images: {
+          icon: { url: randomImageURL() },
+          logo: { url: randomImageURL() },
+        },
+      },
+      barcode: token,
+    };
+    const response = await request
+      .post('/')
+      .send(payload)
+      .expect(HttpStatus.OK)
+      .responseType('blob')
+      .then(parseResponseBody);
+
+    expect(response).toMatchObject({
+      'pass.json': {
+        formatVersion: 1,
+        organizationName: 'Paw Planet',
+        description: 'Paw Planet Coupon',
+        barcodes: [{ format: 'PKBarcodeFormatQR', messageEncoding: 'iso-8859-1', message: token }],
+        coupon: {
+          primaryFields: [{ key: 'email', label: 'EMAIL', value: 'user@example.com' }],
+        },
+      },
+    });
   });
 
   it.each([
@@ -303,11 +349,48 @@ describe('applepass handlers', () => {
 
     expect(response).toMatchObject({
       'pass.json': {
-        formatVersion: 1,
-        organizationName: 'Paw Planet',
-        description: 'Paw Planet Coupon',
-        barcodes: [{ format: 'PKBarcodeFormatQR', messageEncoding: 'iso-8859-1', message: 'ABCD1234' }],
         coupon: { auxiliaryFields: [{ key: 'expires', label: 'EXPIRES', value: expected }] },
+      },
+    });
+  });
+
+  it.each([
+    ['upper-case', '{{ upper value }}', 'SAMPLE TEXT'],
+    ['lower-case', '{{ lower value }}', 'sample text'],
+  ])('should support format string value to %s', async (_desc, expr, expected) => {
+    const payload = {
+      credentials,
+      template: {
+        id: 'TEST',
+        model: {
+          formatVersion: 1,
+          organizationName: 'Paw Planet',
+          description: 'Paw Planet Coupon',
+          barcode: { format: 'PKBarcodeFormatQR', messageEncoding: 'iso-8859-1' },
+          coupon: {
+            primaryFields: [{ key: 'key', label: 'LABEL', value: expr }],
+          },
+        },
+        images: {
+          icon: { url: randomImageURL() },
+          logo: { url: randomImageURL() },
+        },
+      },
+      dynamicData: {
+        value: 'Sample Text',
+      },
+      barcode: 'ABCD1234',
+    };
+    const response = await request
+      .post('/')
+      .send(payload)
+      .expect(HttpStatus.OK)
+      .responseType('blob')
+      .then(parseResponseBody);
+
+    expect(response).toMatchObject({
+      'pass.json': {
+        coupon: { primaryFields: [{ key: 'key', label: 'LABEL', value: expected }] },
       },
     });
   });
