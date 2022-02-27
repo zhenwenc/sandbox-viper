@@ -1,6 +1,6 @@
 import yauzl from 'yauzl';
 import setPath from 'lodash/set';
-import { importSPKI, SignJWT } from 'jose';
+import { SignJWT } from 'jose';
 import { randomBytes } from 'crypto';
 import supertest, { Test, SuperTest, Response } from 'supertest';
 
