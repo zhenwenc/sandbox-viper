@@ -5,7 +5,7 @@ import Handlebars from 'handlebars';
 import { formatInTimeZone } from 'date-fns-tz';
 import { format, Locale } from 'date-fns';
 
-import { isNotNullish } from '@navch/common';
+import { isNotNullish, BadRequestError } from '@navch/common';
 
 const getAllLocales = memoize((): Map<string, Locale> => {
   const pairs = Object.values(Locales).map((item: Locale) => {
@@ -25,8 +25,15 @@ const parseTimeZoneSafe = (code: unknown): string | undefined => {
   return code;
 };
 
-Handlebars.registerHelper('upper', str => R.toUpper(str));
-Handlebars.registerHelper('lower', str => R.toLower(str));
+Handlebars.registerHelper('upper', str => (str ? R.toUpper(str) : ''));
+Handlebars.registerHelper('lower', str => (str ? R.toLower(str) : ''));
+
+Handlebars.registerHelper('required', value => {
+  if (!isNotNullish(value)) {
+    throw new BadRequestError('Error rendering expression, missing required value');
+  }
+  return value;
+});
 
 /**
  * Format the datetime/timestamp value with a given format, and optionally using

@@ -357,6 +357,8 @@ describe('applepass handlers', () => {
   it.each([
     ['upper-case', '{{ upper value }}', 'SAMPLE TEXT'],
     ['lower-case', '{{ lower value }}', 'sample text'],
+    ['upper-case handles undefined', '{{ upper notExists }}', ''],
+    ['lower-case handles undefined', '{{ lower notExists }}', ''],
   ])('should support format string value to %s', async (_desc, expr, expected) => {
     const payload = {
       credentials,
@@ -393,5 +395,54 @@ describe('applepass handlers', () => {
         coupon: { primaryFields: [{ key: 'key', label: 'LABEL', value: expected }] },
       },
     });
+  });
+
+  it.each([
+    ['success case', '{{ required value }}', 'Sample Text'],
+    ['failure case', '{{ required notExist }}', new Error('missing required value')],
+  ])('should support enforce required value for %s', async (_desc, expr, expected) => {
+    const payload = {
+      credentials,
+      template: {
+        id: 'TEST',
+        model: {
+          formatVersion: 1,
+          organizationName: 'Paw Planet',
+          description: 'Paw Planet Coupon',
+          barcode: { format: 'PKBarcodeFormatQR', messageEncoding: 'iso-8859-1' },
+          coupon: {
+            primaryFields: [{ key: 'key', label: 'LABEL', value: expr }],
+          },
+        },
+        images: {
+          icon: { url: randomImageURL() },
+          logo: { url: randomImageURL() },
+        },
+      },
+      dynamicData: {
+        value: 'Sample Text',
+      },
+      barcode: 'ABCD1234',
+    };
+
+    if (expected instanceof Error) {
+      await request
+        .post('/')
+        .send(payload)
+        .expect(HttpStatus.BAD_REQUEST)
+        .expect({ message: 'Invalid Argument Error' });
+    } else {
+      const response = await request
+        .post('/')
+        .send(payload)
+        .expect(HttpStatus.OK)
+        .responseType('blob')
+        .then(parseResponseBody);
+      expect(response).toMatchObject({
+        'pass.json': {
+          coupon: { primaryFields: [{ key: 'key', label: 'LABEL', value: expected }] },
+        },
+      });
+    }
   });
 });
