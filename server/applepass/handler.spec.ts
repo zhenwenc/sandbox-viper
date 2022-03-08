@@ -4,8 +4,8 @@ import { SignJWT } from 'jose';
 import { randomBytes } from 'crypto';
 import supertest, { Test, SuperTest, Response } from 'supertest';
 
-import { Logger, LoggerLevel, HttpStatus } from '@navch/common';
-import { makeRouter, middlewares, setRequestContext } from '@navch/http';
+import { AbstractError, Logger, LoggerLevel, HttpStatus } from '@navch/common';
+import { makeRouter, withRouter, middlewares, setRequestContext } from '@navch/http';
 
 import { buildInMemoryStorage } from '../storage';
 import { buildApplePassHandlers } from './handler';
@@ -108,6 +108,7 @@ describe('applepass handlers', () => {
     });
 
     const router = makeRouter();
+    router.use(middlewares.errorHandler({ expose: true }));
     router.use(setRequestContext({ logger }));
     router.use('/', makeRouter(handlers).routes());
 
@@ -400,7 +401,7 @@ describe('applepass handlers', () => {
   it.each([
     ['success case', '{{ required value }}', 'Sample Text'],
     ['failure case', '{{ required notExist }}', new Error('missing required value')],
-  ])('should support enforce required value for %s', async (_desc, expr, expected) => {
+  ])('should support enforce required value on %s', async (_desc, expr, expected) => {
     const payload = {
       credentials,
       template: {
@@ -430,7 +431,14 @@ describe('applepass handlers', () => {
         .post('/')
         .send(payload)
         .expect(HttpStatus.BAD_REQUEST)
-        .expect({ message: 'Invalid Argument Error' });
+        .expect(resp => {
+          expect(resp.body).toMatchObject({
+            message: 'Invalid Argument Error',
+            extensions: {
+              exception: 'Error rendering expression, missing required value',
+            },
+          });
+        });
     } else {
       const response = await request
         .post('/')
