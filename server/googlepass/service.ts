@@ -3,7 +3,6 @@ import R from 'ramda';
 import jwt from 'jsonwebtoken';
 import pluralize from 'pluralize';
 import cloneDeep from 'lodash/cloneDeep';
-import snakeCase from 'lodash/snakeCase';
 import cloneDeepWith from 'lodash/cloneDeepWith';
 import { v4 as uuid } from 'uuid';
 import { GaxiosError } from 'gaxios';
@@ -329,17 +328,20 @@ export async function createTemplateZip(req: CreateTemplateZipRequest): Promise<
 
   const metadata = {
     name: template.name,
-    passStyle: snakeCase(template.style).toUpperCase(),
+  };
+
+  const templateJson = {
+    ...(template.classTemplate && {
+      [toClassType(template.style)]: template.classTemplate,
+    }),
+    ...(template.objectTemplate && {
+      [toObjectType(template.style)]: template.objectTemplate,
+    }),
   };
 
   return createZipFile({
     entries: {
-      ...(template.classTemplate && {
-        'class.json': Buffer.from(JSON.stringify(template.classTemplate)),
-      }),
-      ...(template.objectTemplate && {
-        'object.json': Buffer.from(JSON.stringify(template.objectTemplate)),
-      }),
+      'template.json': Buffer.from(JSON.stringify(templateJson, null, 2)),
       ...(metadataFile && {
         [metadataFile]: Buffer.from(JSON.stringify(metadata)),
       }),
