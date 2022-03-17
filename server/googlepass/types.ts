@@ -56,7 +56,7 @@ export const WalletObject = t.intersection([
      *
      * There are character restrictions for this value. TODO
      */
-    id: t.string,
+    id: t.union([t.string, t.undefined]),
     /**
      * The class associated with this object. The class must be of the same type as
      * this object, must already exist, and must be approved.
