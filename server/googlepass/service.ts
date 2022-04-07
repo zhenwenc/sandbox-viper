@@ -320,10 +320,10 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<st
 export type CreateTemplateZipRequest = {
   readonly logger: Logger;
   readonly template: PassTemplateDefinition;
-  readonly metadataFile: string | undefined;
+  readonly metadataFileName: string | undefined;
 };
 export async function createTemplateZip(req: CreateTemplateZipRequest): Promise<NodeJS.ReadableStream> {
-  const { logger, template, metadataFile } = req;
+  const { logger, template, metadataFileName } = req;
   logger.debug('Convert Google Pay Pass template to zip file');
 
   const metadata = {
@@ -342,8 +342,8 @@ export async function createTemplateZip(req: CreateTemplateZipRequest): Promise<
   return createZipFile({
     entries: {
       'template.json': Buffer.from(JSON.stringify(templateJson, null, 2)),
-      ...(metadataFile && {
-        [metadataFile]: Buffer.from(JSON.stringify(metadata)),
+      ...(metadataFileName && {
+        [metadataFileName]: Buffer.from(JSON.stringify(metadata)),
       }),
     },
   });

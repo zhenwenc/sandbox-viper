@@ -179,15 +179,15 @@ export const buildApplePassHandlers = makeHandlers(({ config, decoders }: Option
            * The definition of a template to be converted.
            */
           template: PassTemplateDefinition,
+          /**
+           * Exports the template metadata to a file in the archive when specified.
+           */
+          metadataFileName: t.union([t.undefined, t.string]),
         }),
       },
-      handle: async (_1, { template }, { logger }) => {
+      handle: async (_1, { template, metadataFileName }, { logger }) => {
         logger.debug('Converts Apple Wallet Pass template');
-        return createTemplateZip({
-          logger,
-          template,
-          metadataFile: 'config.json',
-        });
+        return createTemplateZip({ logger, template, metadataFileName });
       },
     }),
     makeHandler({

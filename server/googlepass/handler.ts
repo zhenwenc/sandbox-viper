@@ -168,12 +168,12 @@ export const buildGooglePassHandlers = makeHandlers(({ config, decoders }: Optio
           /**
            * Exports the template metadata to a file in the archive when specified.
            */
-          metadataFile: t.union([t.undefined, t.string]),
+          metadataFileName: t.union([t.undefined, t.string]),
         }),
       },
-      handle: async (_1, { template, metadataFile }, { logger }) => {
+      handle: async (_1, { template, metadataFileName }, { logger }) => {
         logger.debug('Converts Google Pay Pass template');
-        return createTemplateZip({ logger, template, metadataFile });
+        return createTemplateZip({ logger, template, metadataFileName });
       },
     }),
     makeHandler({

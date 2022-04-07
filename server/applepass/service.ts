@@ -170,10 +170,10 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<PK
 export type CreateTemplateZipRequest = {
   readonly logger: Logger;
   readonly template: PassTemplateDefinition;
-  readonly metadataFile: string | undefined;
+  readonly metadataFileName: string | undefined;
 };
 export async function createTemplateZip(req: CreateTemplateZipRequest): Promise<NodeJS.ReadableStream> {
-  const { logger, template, metadataFile } = req;
+  const { logger, template, metadataFileName } = req;
   logger.debug('Convert Apple Wallet Pass template to zip file');
 
   const metadata = {
@@ -219,8 +219,8 @@ export async function createTemplateZip(req: CreateTemplateZipRequest): Promise<
       'pass.json': Buffer.from(JSON.stringify(template.model)),
       ...(!R.isEmpty(imageFiles) && imageFiles),
       ...(!R.isEmpty(localizationFiles) && localizationFiles),
-      ...(metadataFile && {
-        [metadataFile]: Buffer.from(JSON.stringify(metadata)),
+      ...(metadataFileName && {
+        [metadataFileName]: Buffer.from(JSON.stringify(metadata)),
       }),
     },
   });
