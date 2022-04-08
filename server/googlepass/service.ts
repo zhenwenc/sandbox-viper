@@ -291,7 +291,7 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<st
       client,
       style,
       objectId,
-      objectRecord: { ...objectRecord, classId: classRecord.id },
+      objectRecord: { ...objectRecord, id: objectId, classId: classRecord.id },
     });
     return await signPayPassToken({
       logger,
@@ -307,7 +307,7 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<st
       issuer: credentials.certificates.clientEmail,
       issuerKey: credentials.certificates.clientSecret,
       payload: {
-        [pluralize(toObjectType(style))]: [objectRecord],
+        [pluralize(toObjectType(style))]: [{ ...objectRecord, id: objectId, classId: classRecord.id }],
         //
         // TODO Why embed the class definition in the token?
         //
