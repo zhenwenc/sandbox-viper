@@ -9,6 +9,7 @@ export const PassStyle = t.union([
   t.literal('loyalty'),
   t.literal('offer'),
   t.literal('transit'),
+  t.literal('generic'),
 ]);
 
 /**
