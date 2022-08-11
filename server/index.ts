@@ -14,7 +14,7 @@ import { buildGooglePassHandlers } from './googlepass/handler';
 
 export function buildHandler() {
   const config = new AppConfig();
-  const logger = new Logger({ name: 'viper', prettyPrint: !config.isProdEnv });
+  const logger = new Logger({ name: 'viper' });
 
   const decoders = buildDecoders(logger);
 
