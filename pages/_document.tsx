@@ -3,9 +3,7 @@ import Document, { Html, Head, Main, NextScript, DocumentContext } from 'next/do
 import { rehydrate, renderStatic } from '@navch-ui/styles';
 
 // Rehydrate to ensure that the client doesn't duplicate styles
-if (typeof window !== undefined) {
-  rehydrate();
-}
+rehydrate();
 
 export interface DocumentProps {
   styleHTML: string;
@@ -13,9 +11,10 @@ export interface DocumentProps {
 }
 
 export default class RootDocument extends Document<DocumentProps> {
-  static async getInitialProps({ renderPage }: DocumentContext) {
-    const { html, ...rest } = renderStatic(() => renderPage());
-    return { ...html, ...rest };
+  static async getInitialProps(ctx: DocumentContext) {
+    const { rendered, ...styleProps } = renderStatic(() => Document.getInitialProps(ctx));
+    const initialProps = await rendered;
+    return { ...initialProps, ...styleProps };
   }
 
   render() {
