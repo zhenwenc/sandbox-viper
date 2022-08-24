@@ -11,4 +11,11 @@ module.exports = {
   eslint: {
     ignoreDuringBuilds: true, // disable for this demo repo
   },
+  /**
+   * Enable/disable integration of SWC (Rust-based compiler)
+   *
+   * https://swc.rs
+   * https://nextjs.org/docs/messages/failed-loading-swc
+   */
+  swcMinify: false,
 };
