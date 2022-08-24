@@ -1,12 +1,11 @@
-import * as t from 'io-ts';
 import cbor from 'cbor';
 import { pki } from 'node-forge';
 import { JWK, JWE } from 'node-jose'; // TODO replace with `jose`
 import { promisify } from 'util';
 import { generateKeyPair } from 'crypto';
 
+import * as t from '@navch/codec';
 import { BadRequestError, InternalServerError } from '@navch/common';
-import { validate } from '@navch/codec';
 
 const generateKeyPairAsync = promisify(generateKeyPair);
 
@@ -85,7 +84,7 @@ export async function decrypt<A, O = A>(secret: KeyPair, input: string, codec: t
   try {
     const key = await JWK.asKey(privateKey, 'pem');
     const decrypted = await JWE.createDecrypt(key).decrypt(input);
-    return validate(await cbor.decodeFirst(decrypted.payload), codec);
+    return t.validate(codec, await cbor.decodeFirst(decrypted.payload));
   } catch (err) {
     err.message = `Invalid secret: ${err.message}`;
     throw new BadRequestError(err);

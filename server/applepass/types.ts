@@ -1,4 +1,4 @@
-import * as t from 'io-ts';
+import * as t from '@navch/codec';
 
 export const PassModelBarcode = t.type({
   format: t.union([

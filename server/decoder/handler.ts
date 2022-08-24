@@ -1,4 +1,4 @@
-import * as t from 'io-ts';
+import * as t from '@navch/codec';
 
 import { makeHandler, makeHandlers } from '@navch/http';
 

@@ -1,4 +1,4 @@
-import * as t from 'io-ts';
+import * as t from '@navch/codec';
 import path from 'path';
 import fs from 'fs-extra';
 import memoize from 'memoizee';
@@ -6,7 +6,6 @@ import forEach from 'lodash/forEach';
 import { ZipFile } from 'yazl';
 
 import { Logger, MaybePromise, NotFoundError, isNotNullish } from '@navch/common';
-import { validate } from '@navch/codec';
 
 import { TemplateRecord } from './types';
 
@@ -29,7 +28,7 @@ export async function getLocalTemplates<A extends TemplateRecord, O = A>(
     if (dirent.name.endsWith('.json') && dirent.isFile()) {
       logger.debug(`Loading local pass template: ${dirent.name}`);
       const content = await fs.readFile(path.join(rootDir, dirent.name), 'utf8');
-      return validate(JSON.parse(content), schema);
+      return t.validate(schema, JSON.parse(content));
     }
     return Promise.resolve(undefined);
   });

@@ -1,5 +1,5 @@
 import R from 'ramda';
-import * as t from 'io-ts';
+import * as t from '@navch/codec';
 import { isString } from 'lodash';
 import { oneLineTrim as markdown } from 'common-tags';
 import { PKPass } from 'passkit-generator';

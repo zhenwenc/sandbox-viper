@@ -1,4 +1,4 @@
-import * as t from 'io-ts';
+import * as t from '@navch/codec';
 
 export type PassStyle = t.TypeOf<typeof PassStyle>;
 export const PassStyle = t.union([

@@ -1,4 +1,3 @@
-import * as t from 'io-ts';
 import R from 'ramda';
 import jwt from 'jsonwebtoken';
 import pluralize from 'pluralize';
@@ -7,8 +6,9 @@ import cloneDeepWith from 'lodash/cloneDeepWith';
 import { v4 as uuid } from 'uuid';
 import { GaxiosError } from 'gaxios';
 import { GoogleAuth } from 'google-auth-library';
+
+import * as t from '@navch/codec';
 import { Logger, NotFoundError, recoverP } from '@navch/common';
-import { validate } from '@navch/codec';
 
 import { createZipFile } from '../template/service';
 import { resolveTemplateValue } from '../template/renderer';
@@ -78,7 +78,7 @@ export type CreateWalletClassRequest = {
 export async function createWalletClass(req: CreateWalletClassRequest): Promise<WalletClass> {
   const { logger, client, style, classRecord, forceUpdate } = req;
 
-  const classId = validate(classRecord.id, t.string);
+  const classId = t.validate(t.string, classRecord.id);
   const payload = JSON.stringify({
     ...classRecord,
     reviewStatus: 'underReview', // cannot be 'approved'
