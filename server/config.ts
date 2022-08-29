@@ -1,5 +1,6 @@
-import path from 'path';
 import memoize from 'memoizee';
+import path from 'path';
+
 import { BaseConfig } from '@navch/common';
 
 import { KeyPair, generateRsaKeyPair } from './secret';

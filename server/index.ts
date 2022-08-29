@@ -5,12 +5,12 @@ import { compose, trim } from 'ramda';
 import { Logger } from '@navch/common';
 import { makeRouter, middlewares, setRequestContext } from '@navch/http';
 
-import { AppConfig } from './config';
-import { buildDecoders } from './decoder/service';
-import { buildInMemoryStorage, buildRedisStorage } from './storage';
-import { buildDecoderHandlers } from './decoder/handler';
 import { buildApplePassHandlers } from './applepass/handler';
+import { AppConfig } from './config';
+import { buildDecoderHandlers } from './decoder/handler';
+import { buildDecoders } from './decoder/service';
 import { buildGooglePassHandlers } from './googlepass/handler';
+import { buildInMemoryStorage, buildRedisStorage } from './storage';
 
 export function buildHandler() {
   const config = new AppConfig();

@@ -1,10 +1,10 @@
-import got from 'got';
 import cbor from 'cbor';
-import memoize from 'memoizee';
-import { path } from 'ramda';
-import { map, fromPairs } from 'lodash';
-import { inflate } from 'pako';
+import got from 'got';
 import { Schema, Validator, ValidatorResult, RewriteFunction } from 'jsonschema';
+import { map, fromPairs } from 'lodash';
+import memoize from 'memoizee';
+import { inflate } from 'pako';
+import { path } from 'ramda';
 
 import { Logger, BadRequestError, invariant, threadP } from '@navch/common';
 

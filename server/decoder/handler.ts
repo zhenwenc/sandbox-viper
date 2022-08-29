@@ -1,9 +1,8 @@
 import * as t from '@navch/codec';
-
 import { makeHandler, makeHandlers } from '@navch/http';
 
-import { Decoder } from './types';
 import { decode } from '../decoder/service';
+import { Decoder } from './types';
 
 export type Options = {
   readonly decoders: Decoder[];

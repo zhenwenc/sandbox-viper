@@ -1,9 +1,9 @@
-import * as Locales from 'date-fns/locale';
-import R from 'ramda';
-import memoize from 'memoizee';
-import Handlebars from 'handlebars';
-import { formatInTimeZone } from 'date-fns-tz';
 import { format, Locale } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+import * as Locales from 'date-fns/locale';
+import Handlebars from 'handlebars';
+import memoize from 'memoizee';
+import * as R from 'ramda';
 
 import { isNotNullish, BadRequestError } from '@navch/common';
 

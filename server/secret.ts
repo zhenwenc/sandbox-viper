@@ -1,8 +1,8 @@
 import cbor from 'cbor';
+import { generateKeyPair } from 'crypto';
 import { pki } from 'node-forge';
 import { JWK, JWE } from 'node-jose'; // TODO replace with `jose`
 import { promisify } from 'util';
-import { generateKeyPair } from 'crypto';
 
 import * as t from '@navch/codec';
 import { BadRequestError, InternalServerError } from '@navch/common';

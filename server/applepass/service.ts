@@ -1,16 +1,16 @@
-import R from 'ramda';
-import flatten from 'lodash/flatten';
+import parseDataURL from 'data-urls';
 import cloneDeep from 'lodash/cloneDeep';
 import cloneDeepWith from 'lodash/cloneDeepWith';
-import parseDataURL from 'data-urls';
-import { v4 as uuid } from 'uuid';
+import flatten from 'lodash/flatten';
 import { PKPass } from 'passkit-generator';
 import { PassProps as PassPropsSchema } from 'passkit-generator/lib/schemas';
+import * as R from 'ramda';
+import { v4 as uuid } from 'uuid';
 
 import { Logger, BadRequestError, isNotNullish } from '@navch/common';
 
-import { createZipFile } from '../template/service';
 import { resolveTemplateValue } from '../template/renderer';
+import { createZipFile } from '../template/service';
 import { PassTemplateDefinition, PassCredentials } from './types';
 
 const parseImageDataURL = (url: string) => {
@@ -83,6 +83,7 @@ export async function createWalletPass(req: CreateWalletPassRequest): Promise<PK
        * on them differs.
        *
        * This field is important if you intent to push Pass Updates.
+       *
        * @see {@link https://developer.apple.com/documentation/walletpasses}
        */
       serialNumber: uuid(),

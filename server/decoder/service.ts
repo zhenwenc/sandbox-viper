@@ -1,8 +1,8 @@
 import { Logger } from '@navch/common';
 
 import { HCERTDecoder } from './scheme/hcert';
-import { NZCPDecoder } from './scheme/nzcp';
 import { JWTDecoder } from './scheme/jwt';
+import { NZCPDecoder } from './scheme/nzcp';
 import { Decoder, DecodeResult } from './types';
 
 export function buildDecoders(logger: Logger): Decoder[] {

@@ -1,17 +1,17 @@
-import R from 'ramda';
-import jwt from 'jsonwebtoken';
-import pluralize from 'pluralize';
-import cloneDeep from 'lodash/cloneDeep';
-import cloneDeepWith from 'lodash/cloneDeepWith';
-import { v4 as uuid } from 'uuid';
 import { GaxiosError } from 'gaxios';
 import { GoogleAuth } from 'google-auth-library';
+import jwt from 'jsonwebtoken';
+import cloneDeep from 'lodash/cloneDeep';
+import cloneDeepWith from 'lodash/cloneDeepWith';
+import pluralize from 'pluralize';
+import * as R from 'ramda';
+import { v4 as uuid } from 'uuid';
 
 import * as t from '@navch/codec';
 import { Logger, NotFoundError, recoverP } from '@navch/common';
 
-import { createZipFile } from '../template/service';
 import { resolveTemplateValue } from '../template/renderer';
+import { createZipFile } from '../template/service';
 import { WalletObject, WalletClass, PassStyle, PassTemplateDefinition, PassCredentials } from './types';
 
 const toClassType = (style: PassStyle) => `${style}Class`;
