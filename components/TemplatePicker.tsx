@@ -40,10 +40,10 @@ const useStyles = makeStyles(theme => ({
     gap: theme.spacing(2),
     gridColumnStart: 1,
 
-    [theme.breakpoints.mediumAndAbove]: {
+    [theme.media.min(theme.breakpoints.lg)]: {
       gridTemplateColumns: 'repeat(2, 50%)',
     },
-    [theme.breakpoints.medium]: {
+    [theme.media.max(theme.breakpoints.lg)]: {
       gridTemplateColumns: 'repeat(1, 100%)',
     },
   },
