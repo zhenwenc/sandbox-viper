@@ -433,10 +433,7 @@ describe('applepass handlers', () => {
         .expect(HttpStatus.BAD_REQUEST)
         .expect(resp => {
           expect(resp.body).toMatchObject({
-            message: 'Invalid Argument Error',
-            extensions: {
-              exception: 'Error rendering expression, missing required value',
-            },
+            message: 'Error rendering expression, missing required value',
           });
         });
     } else {
