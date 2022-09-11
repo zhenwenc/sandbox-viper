@@ -17,7 +17,7 @@ export const theme = buildTheme(baseTheme => ({
       base: '#CFD8DC',
       dark: baseTheme.color.scale.neutral.N5,
       muted: '#697A83',
-      inverse: baseTheme.color.text.base,
+      inverse: baseTheme.color.text.body,
     },
   },
   border: {
