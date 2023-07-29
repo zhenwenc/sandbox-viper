@@ -3,6 +3,8 @@ import type { AppProps } from 'next/app';
 import { ThemeContext, darkTheme, rehydrate } from '@navch-ui/styles';
 import { OverlayContainer } from '@navch-ui/core';
 
+import { Layout } from '@components/Layout';
+
 // Rehydrate to ensure that the client doesn't duplicate styles
 rehydrate();
 
@@ -37,7 +39,9 @@ export default function App(props: AppProps) {
   return (
     <>
       <ThemeContext.Provider value={darkTheme}>
-        <Component {...pageProps} />
+        <Layout align="center">
+          <Component {...pageProps} />
+        </Layout>
       </ThemeContext.Provider>
 
       <OverlayContainer />
