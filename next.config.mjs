@@ -1,8 +1,20 @@
-module.exports = {
+/**
+ * @type {import('next').NextConfig}
+ */
+const nextConfig = {
   /**
    * Deploy webapp under a sub-path for clear separation.
    */
   basePath: '/viper',
+  /**
+   * Path mappings.
+   */
+  rewrites: async () => ({
+    fallback: [
+      { source: '/', destination: `/viper` },
+      { source: '/:path*', destination: `/api/:path*` },
+    ],
+  }),
   /**
    * Built-in ESLint support.
    *
@@ -19,3 +31,5 @@ module.exports = {
    */
   swcMinify: true,
 };
+
+export default nextConfig;
