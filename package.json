@@ -93,6 +93,7 @@
     "@types/react-qr-reader": "2.1.4",
     "@types/supertest": "2.0.11",
     "@types/uuid": "8.3.1",
+    "@types/web-bluetooth": "0.0.17",
     "@types/yauzl": "2.9.2",
     "@types/yazl": "2.4.2",
     "node-forge": "1.2.1",

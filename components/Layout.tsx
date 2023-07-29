@@ -28,7 +28,7 @@ export const Layout: React.FC<LayoutProps> = props => {
       </Box>
 
       <Box flex={1} pv={8} justify="center">
-        <Box flex column container="md" {...boxProps}>
+        <Box flex column fluid container="md" {...boxProps}>
           {children}
         </Box>
       </Box>

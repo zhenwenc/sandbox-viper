@@ -1,4 +1,3 @@
-import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useState } from 'react';
 import { useAsyncFn, useMount } from 'react-use';
@@ -68,10 +67,6 @@ export default function PassView() {
 
   return (
     <Box id="pass-generator" classes={styles.container}>
-      <Head>
-        <title>{'Viper • Sandbox'}</title>
-      </Head>
-
       <Box flex column pv={9} ph={5} classes={styles.content}>
         <Box classes={styles.card}>
           <Text variant="h5" textAlign="center">
