@@ -1,9 +1,6 @@
 import Document, { Html, Head, Main, NextScript, DocumentContext } from 'next/document';
 
-import { rehydrate, renderStatic } from '@navch-ui/styles';
-
-// Rehydrate to ensure that the client doesn't duplicate styles
-rehydrate();
+import { renderStatic } from '@navch-ui/styles';
 
 export interface DocumentProps {
   styleHTML: string;
